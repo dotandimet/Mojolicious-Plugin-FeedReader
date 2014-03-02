@@ -12,29 +12,21 @@ get '/goto' => sub { shift->redirect_to('/atom.xml'); };
 push @{app->static->paths}, File::Spec->catdir($FindBin::Bin, 'samples');
 my $t = Test::Mojo->new(app);
 
-my $sub = {xmlUrl => '/atom.xml'};
 
 # block a non-blocking thing boilerplate. Ugh.
 $t->app->helper(
-  blocker => sub {
-    my ($self, $sub) = @_;
-    $t->app->ua->get($sub->{xmlUrl}, 
-    my ($c, $s, $f, $r);
-    my $delay = Mojo::IOLoop->delay(
-      sub {
-        shift;    # Mojo::IOLoop::Delay
-        ($c, $s, $f, $r) = @_;
-      }
-    );
-    my $end = $delay->begin(0);
-    $t->app->process_feed($sub, sub { $end->(@_); });
-    return ($c, $s, $f, $r);
+  get_feed => sub {
+    my ($self, $url, $headers) = @_;
+    my %headers = $self->set_req_headers($headers) if ($headers);
+    $t->app->ua->max_redirects(5)->connect_timeout(30); # for redirects
+    my ($tx) = $t->app->ua->get($url, \%headers);
+    return $self->process_feed($tx);
   }
 );
 
-$t->get_ok($sub->{xmlUrl})->status_is(200);
-my ($c, $s, $f, $r) = $t->app->blocker($sub);
-isa_ok($c,        'Mojolicious::Controller');
+my $sub = '/atom.xml';
+$t->get_ok($sub)->status_is(200);
+my ($f, $r) = $t->app->get_feed($sub);
 is(ref $f,        'HASH');
 is($r->{error},            undef);
 is($r->{code},            200);
@@ -42,20 +34,18 @@ is(scalar @{$f->{items}}, 2);
 is($f->{items}[0]{title}, 'Entry Two');
 
 # see how not-modified will work:
-($c, $s, $f, $r) = $t->app->blocker({ xmlUrl => $sub->{xmlUrl}, %$r});
+($f, $r) = $t->app->get_feed($sub, $r);
 is($f,     undef);
 is($r->{error},     'Not Modified');
 is($r->{code},     304);
 
 # now let's do error tests:
-($c, $s, $f, $r) = $t->app->blocker({xmlUrl => '/floo'});
-isa_ok($c,        'Mojolicious::Controller');
+($f, $r) = $t->app->get_feed('/floo');
 is($f,     undef);
 is($r->{error},     'Not Found');
 is($r->{code},     404);
 
-($c, $s, $f, $r) = $t->app->blocker({xmlUrl => '/link1.html'});
-isa_ok($c,        'Mojolicious::Controller');
+($f, $r) = $t->app->get_feed('/link1.html');
 is($f,     undef);
 is($r->{error},    'url no longer points to a feed');
 is($r->{code},     200);
@@ -103,27 +93,18 @@ my %set_tests = (
   }
 );
 
-my @subs = map { {xmlUrl => $_} } @set;
-
-
-push @subs, $sub, @subs;
-
-$t->app->process_feeds(
-  \@subs,
-  sub {
-    isa_ok(shift, 'Mojolicious::Controller');
-    my ($sub, $feed, $req_info) = @_;
-    my $req_url = $req_info->{url}->path;
-    eval {
+foreach my $s (@set) {
+  my ($feed, $req_info) = $t->app->get_feed($s);
+  my $req_url = $req_info->{url}->path;
+  eval {
     if ($set_tests{$req_url}) {
-      $set_tests{$req_url}->($sub, $feed, $req_info);
+      $set_tests{$req_url}->($s, $feed, $req_info);
     }
-    }; 
-    if ($@) {
-      die "Something horrible: ", $@;
-    }
+  };
+  if ($@) {
+    die "Something horrible: ", $@;
   }
-);
+};
 
 done_testing();
 
