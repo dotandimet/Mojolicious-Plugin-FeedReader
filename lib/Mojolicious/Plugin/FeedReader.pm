@@ -195,19 +195,16 @@ sub set_req_headers {
 sub find_feeds {
   my $self = shift;
   my $url  = shift;
-  my $cb   = ( ref $_[-1] eq 'CODE' ) ? pop @_ : undef;
-  my @feeds;
-  my $delay;
-  unless ($cb) {
-    $delay = Mojo::IOLoop->delay();
-    $cb = $delay->begin(0);
-  }
+  my $cb   = ( ref $_[-1] eq 'CODE' ) ? pop @_ : sub { return @_; };
   $self->ua->max_redirects(5)->connect_timeout(30);
-  $self->ua->get(
-    $url,
+  my $delay = Mojo::IOLoop->delay(
+    sub {
+      $self->ua->get($url, $_[0]->begin);
+    },
     sub {
       my ( $ua, $tx ) = @_;
       my $req_info = req_info($tx);
+      my @feeds;
       if ( $req_info->{code} == 200 ) {
         eval {
           @feeds = _find_feed_links( $self, $tx->req->url, $tx->res );
@@ -219,11 +216,11 @@ sub find_feeds {
           $req_info->{'error'} = 'no feeds found';
         }
       }
-      $self->$cb($req_info, @feeds);
-    }
+      return ($req_info, @feeds);
+    },
+    sub { shift; $cb->(@_); }
   );
-  $delay->wait if ($delay && ! Mojo::IOLoop->is_running);
-  return @feeds if ($delay);
+  $delay->wait unless Mojo::IOLoop->is_running;
 }
 
 sub _find_feed_links {
