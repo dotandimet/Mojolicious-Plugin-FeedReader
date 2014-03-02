@@ -199,10 +199,10 @@ sub find_feeds {
   $self->ua->max_redirects(5)->connect_timeout(30);
   my $delay = Mojo::IOLoop->delay(
     sub {
-      $self->ua->get($url, $_[0]->begin);
+      $self->ua->get($url, $_[0]->begin(0));
     },
     sub {
-      my ( $ua, $tx ) = @_;
+      my ($del, $ua, $tx ) = @_;
       my $req_info = req_info($tx);
       my @feeds;
       if ( $req_info->{code} == 200 ) {
@@ -216,9 +216,9 @@ sub find_feeds {
           $req_info->{'error'} = 'no feeds found';
         }
       }
-      return ($req_info, @feeds);
+      $del->pass($req_info, @feeds);
     },
-    sub { shift; $cb->(@_); }
+    sub { $cb->(@_); }
   );
   $delay->wait unless Mojo::IOLoop->is_running;
 }
