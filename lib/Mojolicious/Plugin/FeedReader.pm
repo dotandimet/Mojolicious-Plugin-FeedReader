@@ -10,7 +10,7 @@ use HTTP::Date;
 sub register {
   my ($self, $app) = @_;
   foreach my $method (
-    qw(process_feeds process_feed parse_rss parse_rss_dom parse_rss_channel parse_rss_item find_feeds set_req_headers req_info)
+    qw(process_feed parse_rss parse_rss_dom parse_rss_channel parse_rss_item find_feeds set_req_headers req_info)
     )
   {
     $app->helper($method => \&{$method});
@@ -22,7 +22,7 @@ sub parse_rss {
   my $dom;
   if (!ref $xml) { # assume file
     my $rss_str  = decode 'UTF-8', slurp $xml;
-    die "Failed to read file $xml (as UTF-6): $!" unless ($rss_str);
+    die "Failed to read file $xml (as UTF-8): $!" unless ($rss_str);
     $dom = Mojo::DOM->new->parse($rss_str);
   }
   elsif (ref $xml eq 'SCALAR') { # assume string
@@ -58,15 +58,15 @@ sub parse_rss {
 }
 
 sub parse_rss_dom {
-	my ($self, $dom) = @_;
+  my ($self, $dom) = @_;
   die "Argument $dom is not a Mojo::DOM" unless ($dom->isa('Mojo::DOM'));
   my $feed = $self->parse_rss_channel($dom); # Feed properties
-	my $items = $dom->find('item');
-	my $entries = $dom->find('entry'); # Atom
+  my $items = $dom->find('item');
+  my $entries = $dom->find('entry'); # Atom
   my $res = [];
-	foreach my $item ($items->each, $entries->each) {
-		push @$res, $self->parse_rss_item($item);
-	}
+  foreach my $item ($items->each, $entries->each) {
+    push @$res, $self->parse_rss_item($item);
+  }
   if (@$res) {
     $feed->{'items'} = $res;
   }
@@ -86,50 +86,50 @@ sub parse_rss_channel {
   my ($description) = grep { defined $_ } map { exists $info{$_} ? $info{$_} : undef } ( qw(description tagline subtitle) );
   $info{htmlUrl} = $htmlUrl if ($htmlUrl);
   $info{description} = $description if ($description);
-  
+
   return ( keys %info) ? \%info : undef;
 }
 
 sub parse_rss_item {
-		my ($self, $item) = @_;
-		my %h;
-		foreach my $k (qw(title id summary guid content description content\:encoded xhtml\:body pubDate published updated dc\:date)) {
-			my $p = $item->at($k);
-			if ($p) {
+    my ($self, $item) = @_;
+    my %h;
+    foreach my $k (qw(title id summary guid content description content\:encoded xhtml\:body pubDate published updated dc\:date)) {
+      my $p = $item->at($k);
+      if ($p) {
         # skip namespaced items - like itunes:summary - unless explicitly
         # searched:
         next if ($p->type =~ /\:/ && $k ne 'content\:encoded' && $k ne 'xhtml\:body' && 'dc\:date');
-				$h{$k} = $p->text || $p->content;
-				if ($k eq 'pubDate' || $k eq 'published' || $k eq 'updated' || $k eq 'dc\:date') {
-					$h{$k} = str2time($h{$k});
-				}
-			}
-		}
+        $h{$k} = $p->text || $p->content;
+        if ($k eq 'pubDate' || $k eq 'published' || $k eq 'updated' || $k eq 'dc\:date') {
+          $h{$k} = str2time($h{$k});
+        }
+      }
+    }
     # let's handle links seperately, because ATOM loves these buggers:
     $item->find('link')->each( sub {
-			my $l = shift;
-			if ($l->attr('href')) {
-				if (!$l->attr('rel') || $l->attr('rel') eq 'alternate') {
+      my $l = shift;
+      if ($l->attr('href')) {
+        if (!$l->attr('rel') || $l->attr('rel') eq 'alternate') {
           $h{'link'} = $l->attr('href');
-				}
-			}
-			else {
-				if ($l->text =~ /\w+/) {
-        	$h{'link'} = $l->text; # simple link
-				}
-# 				else { # we have an empty link element with no 'href'. :-(
-# 					$h{'link'} = $1 if ($l->next->text =~ m/^(http\S+)/);
-# 				}
+        }
+      }
+      else {
+        if ($l->text =~ /\w+/) {
+          $h{'link'} = $l->text; # simple link
+        }
+#         else { # we have an empty link element with no 'href'. :-(
+#           $h{'link'} = $1 if ($l->next->text =~ m/^(http\S+)/);
+#         }
        }
     });
-		# find tags:
-		my @tags;
-		$item->find('category, dc\:subject')->each(sub { push @tags, $_[0]->text || $_[0]->attr('term') } );
-		if (@tags) {
-			$h{'tags'} = \@tags;
-		}
+    # find tags:
+    my @tags;
+    $item->find('category, dc\:subject')->each(sub { push @tags, $_[0]->text || $_[0]->attr('term') } );
+    if (@tags) {
+      $h{'tags'} = \@tags;
+    }
     #
-		# normalize fields:
+    # normalize fields:
                 my %replace = (
                     'content\:encoded' => 'content',
                     'xhtml\:body'      => 'content',
@@ -139,10 +139,10 @@ sub parse_rss_item {
                     'updated'          => 'published',
                 #    'guid'             => 'link'
                 );
-		while (my ($old, $new) = each %replace) {
-		if ($h{$old} && ! $h{$new}) {
-			$h{$new} = delete $h{$old};
-		}
+    while (my ($old, $new) = each %replace) {
+    if ($h{$old} && ! $h{$new}) {
+      $h{$new} = delete $h{$old};
+    }
     }
     my %copy = ('description' => 'content', link => 'id',  guid => 'id');
     while (my ($fill, $required) = each %copy) {
@@ -151,12 +151,12 @@ sub parse_rss_item {
       }
     }
     $h{"_raw"} = $item->to_string;
-		return \%h;
+    return \%h;
 }
 
 sub req_info {
-	my ($tx) = pop;
-	my %info = ( url => $tx->req->url );
+  my ($tx) = pop;
+  my %info = ( url => $tx->req->url );
     if (my $res = $tx->success) {
       $info{'code'} = $res->code;
       if ($res->code == 200) {
@@ -172,7 +172,7 @@ sub req_info {
       else {
         $info{'error'} = $tx->res->message; # for not modified etc.
       }
-	}
+  }
   else {
     my ($err, $code) = $tx->error;
     $info{'code'} = $code if ($code);
@@ -182,14 +182,14 @@ sub req_info {
 }
 
 # set request conditional headers from saved last_modified and etag headers
-sub set_req_headers { 
+sub set_req_headers {
   my $h = pop;
-  my %headers;    
-	$headers{'If-Modified-Since'} = $h->{last_modified} if ($h->{last_modified});
-	$headers{'If-None-Match'} = $h->{etag} if ($h->{etag});
+  my %headers;
+  $headers{'If-Modified-Since'} = $h->{last_modified} if ($h->{last_modified});
+  $headers{'If-None-Match'} = $h->{etag} if ($h->{etag});
   return %headers;
 }
-# find_feeds - get RSS/Atom feed URL from argument. 
+# find_feeds - get RSS/Atom feed URL from argument.
 # Code adapted to use Mojolcious from Feed::Find by Benjamin Trott
 # Any stupid mistakes are my own
 sub find_feeds {
@@ -279,35 +279,9 @@ sub _find_feed_links {
   return @feeds;
 }
 
-sub process_feeds {
-  my ($self, $subs, $cb) = @_;
-  state $delay = Mojo::IOLoop->delay(sub { return @_; });
-  state $active = 0;
-  my $max_concurrent = $self->ua->max_connections;
-  while ( $active < $max_concurrent and my $sub = shift @$subs ) {
-    my ($url, %not_modified_headers);
-    if (ref $sub eq 'HASH') { 
-      $url = $sub->{xmlUrl};
-		  %not_modified_headers = set_req_headers($sub);
-    }
-    else {
-      $url = $sub;
-    }
-    $active++;
-    my $end = $delay->begin(0);
-    $self->ua->get($url => \%not_modified_headers => sub {
-      my ($ua, $tx) = @_;
-      $active--;
-      $end->();
-      $self->process_feed($sub, $tx, $cb);
-      $self->process_feeds($subs, $cb);
-    });
-  };
-  $delay->wait unless Mojo::IOLoop->is_running;
-}
 
 sub process_feed {
-  my ($self, $sub, $tx, $cb) = @_;
+  my ($self, $tx) = @_;
   my $req_info = req_info($tx);
   my $feed;
   if (!defined $req_info->{error} && $req_info->{'code'} == 200) {
@@ -321,13 +295,7 @@ sub process_feed {
       $req_info->{'error'} = 'url no longer points to a feed';
     }
   }
-  if ($cb) {
-    $self->$cb($sub, $feed, $req_info);
-    return;
-  }
-  else { # blocking???
-    return $sub, $feed, $req_info;
-  }
+ return ($feed, $req_info);
 }
 
 1;
@@ -373,8 +341,6 @@ B<Mojolicious::Plugin::FeedReader> adds the following helpers.
 =head2 find_feeds
 
 =head2 parse_rss
-
-=head2 process_feeds
 
 =head1 SEE ALSO
 

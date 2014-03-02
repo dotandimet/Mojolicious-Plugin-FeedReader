@@ -18,6 +18,7 @@ my $sub = {xmlUrl => '/atom.xml'};
 $t->app->helper(
   blocker => sub {
     my ($self, $sub) = @_;
+    $t->app->ua->get($sub->{xmlUrl}, 
     my ($c, $s, $f, $r);
     my $delay = Mojo::IOLoop->delay(
       sub {
@@ -26,7 +27,7 @@ $t->app->helper(
       }
     );
     my $end = $delay->begin(0);
-    $t->app->process_feeds([$sub], sub { $end->(@_); });
+    $t->app->process_feed($sub, sub { $end->(@_); });
     return ($c, $s, $f, $r);
   }
 );
