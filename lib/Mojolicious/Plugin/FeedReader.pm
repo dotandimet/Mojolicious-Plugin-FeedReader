@@ -246,7 +246,7 @@ sub _find_feed_links {
   else {
   # we are in a web page. PHEAR.
     my $base = Mojo::URL->new( $res->dom->find('head base')->pluck( 'attr', 'href' )->join('') || $url );
-    my $title = $res->dom->at('head > title')->text || $url;
+    my $title = $res->dom->find('head > title')->pluck('text')->join('') || $url;
     $res->dom->find('head link')->each(
       sub {
         my $attrs = $_->attr();
@@ -272,6 +272,11 @@ sub _find_feed_links {
           Mojo::URL->new( $_->attr('href') )->to_abs( $base );
       }
       );
+    unless (@feeds) { # call me crazy, but maybe this is just a feed served as HTML?
+      if ( parse_rss_dom($self, $res->dom)->{items} > 0) {
+        push @feeds, Mojo::URL->new($url)->to_abs;
+      }
+    }
   }
   return @feeds;
 }
