@@ -4,13 +4,16 @@ use Test::More;
 use Test::Mojo;
 use Mojo::URL;
 use FindBin;
+use Mojo::Util qw(slurp);
 
 use Mojolicious::Lite;
 plugin 'FeedReader';
 
 get '/floo' => sub { shift->redirect_to('/link1.html'); };
 
-push @{app->static->paths}, File::Spec->catdir($FindBin::Bin, 'samples');
+my $samples = File::Spec->catdir($FindBin::Bin, 'samples');
+push @{app->static->paths}, $samples;
+get '/olaf' =>sub { shift->render(data => slurp(File::Spec->catfile($samples, 'atom.xml')), format => 'html'); };
 
 my $t = Test::Mojo->new(app);
 
@@ -61,6 +64,12 @@ like( $feeds[0],  qr{http://localhost:\d+/atom.xml$} ); # abs url!
 
 ($info, @feeds) = $t->app->find_feeds('/no_link.html');
 is(scalar @feeds, 0, 'no feeds');
+
+# a feed with an incorrect mime-type:
+$t->get_ok('/olaf')->status_is(200)->content_type_like(qr/^text\/html/, 'feed served as html');
+($info, @feeds) = $t->app->find_feeds('/olaf');
+is(scalar @feeds, 1);
+is(Mojo::URL->new($feeds[0])->path, '/olaf', 'feed served as html');
 
 # we should get more info with non-blocking:
 
