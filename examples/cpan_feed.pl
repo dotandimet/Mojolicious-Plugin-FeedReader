@@ -11,13 +11,11 @@ get '/' => sub {
   $self->render_later;
   my $delay = Mojo::IOLoop->delay(
     sub {
-      my $delay = shift;
-      $self->find_feeds("search.cpan.org", $delay->begin(0));
+      $self->find_feeds("search.cpan.org", shift->begin(0));
     },
     sub {
-      my $delay = shift;
       my $feed = pop;
-      $self->parse_rss($feed, $delay->begin);
+      $self->parse_rss($feed, shift->begin);
     },
     sub {
         my $data = pop;
@@ -25,6 +23,7 @@ get '/' => sub {
     });
   $delay->wait unless Mojo::IOLoop->is_running;
 } => 'uploads';
+
 
 app->start;
 
