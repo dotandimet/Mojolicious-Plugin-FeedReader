@@ -358,11 +358,12 @@ Mojolicious::Plugin::FeedReader - Mojolicious Plugin to fetch and parse RSS & At
 
 =head1 DESCRIPTION
 
-B<Mojolicious::Plugin::FeedReader> implements minimalistic helpers for identifying, fetching and parsing RSS and Atom Feeds.
-It has minimal dependencies, relying as much as possible on Mojolicious components - Mojo::UserAgent for fetching feeds and checking URLs,
-Mojo::DOM for XML/HTML parsing. It therefore rather fragile, and 
-
-B<Experimental / Toy code !!! use at your own risk!!!>
+B<Mojolicious::Plugin::FeedReader> implements minimalistic helpers for identifying,
+fetching and parsing RSS and Atom Feeds.  It has minimal dependencies, relying as
+much as possible on Mojolicious components - Mojo::UserAgent for fetching feeds and
+checking URLs, Mojo::DOM for XML/HTML parsing.
+It therefore rather fragile and naive, and should be considered Experimental/Toy code
+- B<use at your own risk>.
 
 
 =head1 METHODS
