@@ -5,6 +5,7 @@ use FindBin;
 use lib $FindBin::Bin . '/../lib';
 
 plugin 'FeedReader';
+plugin 'PODRenderer';
 
 get '/' => sub {
   my $self = shift;

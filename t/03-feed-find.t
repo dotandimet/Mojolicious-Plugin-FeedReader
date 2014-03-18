@@ -22,6 +22,10 @@ $t->get_ok('/atom.xml')->status_is(200);
 my ($info, @feeds) = $t->app->find_feeds('/atom.xml');
 like( $feeds[0],  qr{http://localhost:\d+/atom.xml$} ); # abs url!
 
+# can we consume a Mojo::URL ?
+my ($info_1, @feeds_a) = $t->app->find_feeds($feeds[0]);
+is_deeply($feeds_a[0], $feeds[0], 'argument is a Mojo::URL');
+
 # link
 $t->get_ok('/link1.html')->status_is(200);
 ($info, @feeds) = $t->app->find_feeds('/link1.html');
