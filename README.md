@@ -48,11 +48,12 @@ Mojolicious::Plugin::FeedReader - Mojolicious Plugin to fetch and parse RSS & At
 
 # DESCRIPTION
 
-__Mojolicious::Plugin::FeedReader__ implements minimalistic helpers for identifying, fetching and parsing RSS and Atom Feeds.
-It has minimal dependencies, relying as much as possible on Mojolicious components - Mojo::UserAgent for fetching feeds and checking URLs,
-Mojo::DOM for XML/HTML parsing. It therefore rather fragile, and 
-
-__Experimental / Toy code !!! use at your own risk!!!__
+__Mojolicious::Plugin::FeedReader__ implements minimalistic helpers for identifying,
+fetching and parsing RSS and Atom Feeds.  It has minimal dependencies, relying as
+much as possible on Mojolicious components - Mojo::UserAgent for fetching feeds and
+checking URLs, Mojo::DOM for XML/HTML parsing.
+It therefore rather fragile and naive, and should be considered Experimental/Toy code
+\- __use at your own risk__.
 
 
 
@@ -119,8 +120,11 @@ If given a callback function as an additional argument, execution will be non-bl
     });
 
 A minimalist liberal RSS/Atom parser, using Mojo::DOM queries.
+
 Dates are parsed using [HTTP::Date](http://search.cpan.org/perldoc?HTTP::Date).
+
 If parsing fails (for example, the parser was given an HTML page), the helper will return undef.
+
 On success, the result returned is a hashref with the following keys:
 
 - title
