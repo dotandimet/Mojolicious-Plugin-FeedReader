@@ -6,11 +6,12 @@ use Mojo::Util qw(decode slurp trim);
 use Mojo::DOM;
 use Mojo::IOLoop;
 use HTTP::Date;
+use Carp "croak";
 
 sub register {
   my ($self, $app) = @_;
   foreach my $method (
-    qw(process_feed parse_rss parse_rss_dom parse_rss_channel parse_rss_item find_feeds set_req_headers req_info)
+    qw( find_feeds parse_rss parse_rss_dom parse_rss_channel parse_rss_item )
     )
   {
     $app->helper($method => \&{$method});
@@ -234,26 +235,23 @@ sub find_feeds {
   $self->ua->max_redirects(5)->connect_timeout(30);
   my $main = sub {
       my ($tx) = @_;
-      my $req_info = req_info($tx);
       my @feeds;
-      if ($req_info->{code} == 200) {
-        eval { @feeds = _find_feed_links($self, $tx->req->url, $tx->res); };
-        if ($@) {
-          $req_info->{'error'} = $@;
-        }
-        if (@feeds == 0) {
-          $req_info->{'error'} = 'no feeds found';
-        }
-      }
-     return ($req_info, @feeds);
+      return unless ($tx->success && $tx->res->code == 200);
+      eval {
+        @feeds = _find_feed_links($self, $tx->req->url, $tx->res);
+      };
+      if ($@) {
+        croak "Exception in find_feeds - ", $@;
+      };
+      return (@feeds);
   };
   if ($cb) {    # non-blocking:
     $self->ua->get(
       $url,
       sub {
         my ($ua, $tx) = @_;
-        my ($req_info, @feeds) = $main->($tx);
-        $cb->($req_info, @feeds);
+        my (@feeds) = $main->($tx);
+        $cb->(@feeds);
       });
   }
   else {
@@ -307,7 +305,7 @@ sub _find_feed_links {
       );
     unless (@feeds)
     {    # call me crazy, but maybe this is just a feed served as HTML?
-      if (parse_rss_dom($self, $res->dom)->{items} > 0) {
+      if (parse_rss_dom($self, $res->dom)) {
         push @feeds, Mojo::URL->new($url)->to_abs;
       }
     }
@@ -315,22 +313,6 @@ sub _find_feed_links {
   return @feeds;
 }
 
-
-sub process_feed {
-  my ($self, $tx) = @_;
-  my $req_info = req_info($tx);
-  my $feed;
-  if (!defined $req_info->{error} && $req_info->{'code'} == 200) {
-    eval { $feed = $self->parse_rss($tx->res->dom); };
-    if ($@) {    # assume no error from tx, because code is 200
-      $req_info->{'error'} = $@;
-    }
-    if (!$feed && !defined $req_info->{'error'}) {
-      $req_info->{'error'} = 'url no longer points to a feed';
-    }
-  }
-  return ($feed, $req_info);
-}
 
 1;
 
