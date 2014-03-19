@@ -57,8 +57,8 @@ is( $feeds[0],  'http://www.example.com/?feed=rss2' ); # abs url!
 is( $feeds[1],  'http://www.example.com/?feed=rss' ); # abs url!
 is( $feeds[2],  'http://www.example.com/?feed=atom' ); # abs url!
 } );
-$t->app->find_feeds('/link2_multi.html', $delay->begin);
-
+$t->app->find_feeds('/link2_multi.html', $delay->begin(0));
+$delay->wait unless (Mojo::IOLoop->is_running);
 # Let's try something with redirects:
 $t->get_ok('/floo')->status_is(302);
 ($info, @feeds) = $t->app->find_feeds('/floo');
@@ -84,7 +84,8 @@ $delay = Mojo::IOLoop->delay(sub {
   ok(defined $req_info->{'error'}, 'error is defined');
 });
 
-$t->app->find_feeds('/no_link.html', $delay->begin );
+$t->app->find_feeds('/no_link.html', $delay->begin(0) );
+$delay->wait unless (Mojo::IOLoop->is_running);
 
 
 

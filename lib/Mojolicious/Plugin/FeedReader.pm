@@ -20,16 +20,16 @@ sub register {
 sub parse_rss {
   my ($c, $xml, $cb) = @_;
   my $dom;
-  if (!ref $xml) { # assume file
-    my $rss_str  = decode 'UTF-8', slurp $xml;
+  if (!ref $xml) {    # assume file
+    my $rss_str = decode 'UTF-8', slurp $xml;
     die "Failed to read file $xml (as UTF-8): $!" unless ($rss_str);
     $dom = Mojo::DOM->new->parse($rss_str);
   }
-  elsif (ref $xml eq 'SCALAR') { # assume string
+  elsif (ref $xml eq 'SCALAR') {    # assume string
     $dom = Mojo::DOM->new->parse($$xml);
   }
-  elsif ($xml->can('slurp')) { # assume Mojo::Asset
-    my $rss_str  = decode 'UTF-8', $xml->slurp;
+  elsif ($xml->can('slurp')) {      # assume Mojo::Asset
+    my $rss_str = decode 'UTF-8', $xml->slurp;
     die "Failed to read asset $xml (as UTF-8): $!" unless ($rss_str);
     $dom = Mojo::DOM->new->parse($rss_str);
   }
@@ -37,18 +37,20 @@ sub parse_rss {
     $dom = $xml;
   }
   elsif ($xml->isa('Mojo::URL')) {
+
     # this is the only case where we might go non-blocking:
     if ($cb) {
-      $c->ua->get($xml, sub {
+      $c->ua->get(
+        $xml,
+        sub {
           my ($ua, $tx) = @_;
           my $feed;
           if ($tx->success) {
-            eval {
-              $feed = $c->parse_rss_dom($tx->res->dom);
-            };
+            eval { $feed = $c->parse_rss_dom($tx->res->dom); };
           }
           $c->$cb($feed);
-       });
+        }
+      );
     }
     else {
       $dom = $c->ua->get($xml)->res->dom;
@@ -60,54 +62,77 @@ sub parse_rss {
 sub parse_rss_dom {
   my ($self, $dom) = @_;
   die "Argument $dom is not a Mojo::DOM" unless ($dom->isa('Mojo::DOM'));
-  my $feed = $self->parse_rss_channel($dom); # Feed properties
-  my $items = $dom->find('item');
-  my $entries = $dom->find('entry'); # Atom
-  my $res = [];
+  my $feed    = $self->parse_rss_channel($dom);    # Feed properties
+  my $items   = $dom->find('item');
+  my $entries = $dom->find('entry');               # Atom
+  my $res     = [];
   foreach my $item ($items->each, $entries->each) {
     push @$res, $self->parse_rss_item($item);
   }
   if (@$res) {
     $feed->{'items'} = $res;
   }
- return $feed;
+  return $feed;
 }
 
 sub parse_rss_channel {
   my ($self, $dom) = @_;
   my %info;
-  foreach my $k (qw{title subtitle description tagline link:not([rel]) link[rel=alternate]}) {
-    my $p = $dom->at("channel > $k") || $dom->at("feed > $k"); # direct child
+  foreach my $k (
+    qw{title subtitle description tagline link:not([rel]) link[rel=alternate]})
+  {
+    my $p = $dom->at("channel > $k") || $dom->at("feed > $k");   # direct child
     if ($p) {
       $info{$k} = $p->text || $p->content || $p->attr('href');
     }
   }
-  my ($htmlUrl) = grep { defined $_ } map { delete $info{$_} } ('link:not([rel])','link[rel=alternate]');
-  my ($description) = grep { defined $_ } map { exists $info{$_} ? $info{$_} : undef } ( qw(description tagline subtitle) );
-  $info{htmlUrl} = $htmlUrl if ($htmlUrl);
+  my ($htmlUrl)
+    = grep { defined $_ }
+    map { delete $info{$_} } ('link:not([rel])', 'link[rel=alternate]');
+  my ($description)
+    = grep { defined $_ }
+    map { exists $info{$_} ? $info{$_} : undef }
+    (qw(description tagline subtitle));
+  $info{htmlUrl}     = $htmlUrl     if ($htmlUrl);
   $info{description} = $description if ($description);
 
-  return ( keys %info) ? \%info : undef;
+  return (keys %info) ? \%info : undef;
 }
 
 sub parse_rss_item {
-    my ($self, $item) = @_;
-    my %h;
-    foreach my $k (qw(title id summary guid content description content\:encoded xhtml\:body pubDate published updated created issued modified dc\:date)) {
-      my $p = $item->at($k);
-      if ($p) {
-        # skip namespaced items - like itunes:summary - unless explicitly
-        # searched:
-        next if ($p->type =~ /\:/ && $k ne 'content\:encoded' && $k ne 'xhtml\:body' && $k ne 'dc\:date');
-        $h{$k} = $p->text || $p->content;
-        if ($k eq 'pubDate' || $k eq 'published' || $k eq 'updated' || $k eq 'dc\:date'
-            || $k eq 'created' || $k eq 'issued' || $k eq 'modified' ) {
-          $h{$k} = str2time($h{$k});
-        }
+  my ($self, $item) = @_;
+  my %h;
+  foreach my $k (
+    qw(title id summary guid content description content\:encoded xhtml\:body pubDate published updated created issued modified dc\:date)
+    )
+  {
+    my $p = $item->at($k);
+    if ($p) {
+
+      # skip namespaced items - like itunes:summary - unless explicitly
+      # searched:
+      next
+        if ($p->type =~ /\:/
+        && $k ne 'content\:encoded'
+        && $k ne 'xhtml\:body'
+        && $k ne 'dc\:date');
+      $h{$k} = $p->text || $p->content;
+      if ( $k eq 'pubDate'
+        || $k eq 'published'
+        || $k eq 'updated'
+        || $k eq 'dc\:date'
+        || $k eq 'created'
+        || $k eq 'issued'
+        || $k eq 'modified')
+      {
+        $h{$k} = str2time($h{$k});
       }
     }
-    # let's handle links seperately, because ATOM loves these buggers:
-    $item->find('link')->each( sub {
+  }
+
+  # let's handle links seperately, because ATOM loves these buggers:
+  $item->find('link')->each(
+    sub {
       my $l = shift;
       if ($l->attr('href')) {
         if (!$l->attr('rel') || $l->attr('rel') eq 'alternate') {
@@ -116,67 +141,71 @@ sub parse_rss_item {
       }
       else {
         if ($l->text =~ /\w+/) {
-          $h{'link'} = $l->text; # simple link
+          $h{'link'} = $l->text;    # simple link
         }
+
 #         else { # we have an empty link element with no 'href'. :-(
 #           $h{'link'} = $1 if ($l->next->text =~ m/^(http\S+)/);
 #         }
-       }
-    });
-    # find tags:
-    my @tags;
-    $item->find('category, dc\:subject')->each(sub { push @tags, $_[0]->text || $_[0]->attr('term') } );
-    if (@tags) {
-      $h{'tags'} = \@tags;
-    }
-    #
-    # normalize fields:
-                my %replace = (
-                    'content\:encoded' => 'content',
-                    'xhtml\:body'      => 'content',
-                    'pubDate'          => 'published',
-                    'dc\:date'         => 'published',
-                    'summary'          => 'description',
-                    'updated'          => 'published',
-                    'created'          => 'published',
-                    'issued'           => 'published',
-                    'modified'         => 'published',
-
-                #    'guid'             => 'link'
-                );
-    while (my ($old, $new) = each %replace) {
-    if ($h{$old} && ! $h{$new}) {
-      $h{$new} = delete $h{$old};
-    }
-    }
-    my %copy = ('description' => 'content', link => 'id',  guid => 'id');
-    while (my ($fill, $required) = each %copy) {
-      if ($h{$fill} && ! $h{$required}) {
-        $h{$required} = $h{$fill};
       }
     }
-    $h{"_raw"} = $item->to_string;
-    return \%h;
+  );
+
+  # find tags:
+  my @tags;
+  $item->find('category, dc\:subject')
+    ->each(sub { push @tags, $_[0]->text || $_[0]->attr('term') });
+  if (@tags) {
+    $h{'tags'} = \@tags;
+  }
+  #
+  # normalize fields:
+  my %replace = (
+    'content\:encoded' => 'content',
+    'xhtml\:body'      => 'content',
+    'pubDate'          => 'published',
+    'dc\:date'         => 'published',
+    'summary'          => 'description',
+    'updated'          => 'published',
+    'created'          => 'published',
+    'issued'           => 'published',
+    'modified'         => 'published',
+
+    #    'guid'             => 'link'
+  );
+  while (my ($old, $new) = each %replace) {
+    if ($h{$old} && !$h{$new}) {
+      $h{$new} = delete $h{$old};
+    }
+  }
+  my %copy = ('description' => 'content', link => 'id', guid => 'id');
+  while (my ($fill, $required) = each %copy) {
+    if ($h{$fill} && !$h{$required}) {
+      $h{$required} = $h{$fill};
+    }
+  }
+  $h{"_raw"} = $item->to_string;
+  return \%h;
 }
 
 sub req_info {
   my ($tx) = pop;
-  my %info = ( url => $tx->req->url );
-    if (my $res = $tx->success) {
-      $info{'code'} = $res->code;
-      if ($res->code == 200) {
-        my $headers = $res->headers;
-        my ($last_modified, $etag) = ($headers->last_modified, $headers->etag);
-        if ($last_modified) {
-          $info{last_modified} = $last_modified;
-        }
-        if ($etag) {
-          $info{etag} = $etag;
-        }
+  my %info = (url => $tx->req->url);
+  if (my $res = $tx->success) {
+    $info{'code'} = $res->code;
+    if ($res->code == 200) {
+      my $headers = $res->headers;
+      my ($last_modified, $etag) = ($headers->last_modified, $headers->etag);
+      if ($last_modified) {
+        $info{last_modified} = $last_modified;
       }
-      else {
-        $info{'error'} = $tx->res->message; # for not modified etc.
+      if ($etag) {
+        $info{etag} = $etag;
       }
+    }
+    else {
+      $info{'error'} = $tx->res->message;    # for not modified etc.
+    }
   }
   else {
     my ($err, $code) = $tx->error;
@@ -191,29 +220,24 @@ sub set_req_headers {
   my $h = pop;
   my %headers;
   $headers{'If-Modified-Since'} = $h->{last_modified} if ($h->{last_modified});
-  $headers{'If-None-Match'} = $h->{etag} if ($h->{etag});
+  $headers{'If-None-Match'}     = $h->{etag}          if ($h->{etag});
   return %headers;
 }
+
 # find_feeds - get RSS/Atom feed URL from argument.
 # Code adapted to use Mojolicious from Feed::Find by Benjamin Trott
 # Any stupid mistakes are my own
 sub find_feeds {
   my $self = shift;
   my $url  = shift;
-  my $cb   = ( ref $_[-1] eq 'CODE' ) ? pop @_ : sub { return @_; };
+  my $cb   = (ref $_[-1] eq 'CODE') ? pop @_ : undef;
   $self->ua->max_redirects(5)->connect_timeout(30);
-  my $delay = Mojo::IOLoop->delay(
-    sub {
-      $self->ua->get($url, $_[0]->begin(0));
-    },
-    sub {
-      my ($del, $ua, $tx ) = @_;
+  my $main = sub {
+      my ($tx) = @_;
       my $req_info = req_info($tx);
       my @feeds;
-      if ( $req_info->{code} == 200 ) {
-        eval {
-          @feeds = _find_feed_links( $self, $tx->req->url, $tx->res );
-        };
+      if ($req_info->{code} == 200) {
+        eval { @feeds = _find_feed_links($self, $tx->req->url, $tx->res); };
         if ($@) {
           $req_info->{'error'} = $@;
         }
@@ -221,64 +245,69 @@ sub find_feeds {
           $req_info->{'error'} = 'no feeds found';
         }
       }
-      $del->pass($req_info, @feeds);
-    },
-    sub { $cb->(@_); }
-  );
-  $delay->wait unless Mojo::IOLoop->is_running;
+     return ($req_info, @feeds);
+  };
+  if ($cb) {    # non-blocking:
+    $self->ua->get(
+      $url,
+      sub {
+        my ($ua, $tx) = @_;
+        my ($req_info, @feeds) = $main->($tx);
+        $cb->($req_info, @feeds);
+      });
+  }
+  else {
+    my $tx       = $self->ua->get($url);
+    return $main->($tx);
+  }
 }
 
 sub _find_feed_links {
-  my ( $self, $url, $res ) = @_;
+  my ($self, $url, $res) = @_;
   my %is_feed = map { $_ => 1 } (
 
     # feed mime-types:
-    'application/x.atom+xml',
-    'application/atom+xml',
-    'application/xml',
-    'text/xml',
-    'application/rss+xml',
-    'application/rdf+xml',
+    'application/x.atom+xml', 'application/atom+xml', 'application/xml',
+    'text/xml',               'application/rss+xml',  'application/rdf+xml',
   );
   state $feed_ext = qr/\.(?:rss|xml|rdf)$/;
   my @feeds;
 
   # use split to remove charset attribute from content_type
-  my ($content_type) = split( /[; ]+/, $res->headers->content_type );
-  if ( $is_feed{$content_type} ) {
+  my ($content_type) = split(/[; ]+/, $res->headers->content_type);
+  if ($is_feed{$content_type}) {
     push @feeds, Mojo::URL->new($url)->to_abs;
   }
   else {
-  # we are in a web page. PHEAR.
-    my $base = Mojo::URL->new( $res->dom->find('head base')->pluck( 'attr', 'href' )->join('') || $url );
-    my $title = $res->dom->find('head > title')->pluck('text')->join('') || $url;
+    # we are in a web page. PHEAR.
+    my $base = Mojo::URL->new(
+      $res->dom->find('head base')->pluck('attr', 'href')->join('') || $url);
+    my $title
+      = $res->dom->find('head > title')->pluck('text')->join('') || $url;
     $res->dom->find('head link')->each(
       sub {
         my $attrs = $_->attr();
-        return unless ( $attrs->{'rel'} );
-        my %rel = map { $_ => 1 } split /\s+/, lc( $attrs->{'rel'} );
-        my $type = ( $attrs->{'type'} ) ? lc trim $attrs->{'type'} : '';
-        if ( $is_feed{$type}
-          && ( $rel{'alternate'} || $rel{'service.feed'} ) )
-        {
-          push @feeds,
-            Mojo::URL->new( $attrs->{'href'} )->to_abs( $base );
+        return unless ($attrs->{'rel'});
+        my %rel = map { $_ => 1 } split /\s+/, lc($attrs->{'rel'});
+        my $type = ($attrs->{'type'}) ? lc trim $attrs->{'type'} : '';
+        if ($is_feed{$type} && ($rel{'alternate'} || $rel{'service.feed'})) {
+          push @feeds, Mojo::URL->new($attrs->{'href'})->to_abs($base);
         }
       }
     );
     $res->dom->find('a')->grep(
       sub {
         $_->attr('href')
-          && Mojo::URL->new( $_->attr('href') )->path =~ /$feed_ext/io;
+          && Mojo::URL->new($_->attr('href'))->path =~ /$feed_ext/io;
       }
       )->each(
       sub {
-        push @feeds,
-          Mojo::URL->new( $_->attr('href') )->to_abs( $base );
+        push @feeds, Mojo::URL->new($_->attr('href'))->to_abs($base);
       }
       );
-    unless (@feeds) { # call me crazy, but maybe this is just a feed served as HTML?
-      if ( parse_rss_dom($self, $res->dom)->{items} > 0) {
+    unless (@feeds)
+    {    # call me crazy, but maybe this is just a feed served as HTML?
+      if (parse_rss_dom($self, $res->dom)->{items} > 0) {
         push @feeds, Mojo::URL->new($url)->to_abs;
       }
     }
@@ -292,17 +321,15 @@ sub process_feed {
   my $req_info = req_info($tx);
   my $feed;
   if (!defined $req_info->{error} && $req_info->{'code'} == 200) {
-    eval {
-      $feed = $self->parse_rss( $tx->res->dom );
-    };
-    if ($@) { # assume no error from tx, because code is 200
+    eval { $feed = $self->parse_rss($tx->res->dom); };
+    if ($@) {    # assume no error from tx, because code is 200
       $req_info->{'error'} = $@;
     }
-    if (!$feed && ! defined $req_info->{'error'}) {
+    if (!$feed && !defined $req_info->{'error'}) {
       $req_info->{'error'} = 'url no longer points to a feed';
     }
   }
- return ($feed, $req_info);
+  return ($feed, $req_info);
 }
 
 1;
@@ -321,12 +348,16 @@ Mojolicious::Plugin::FeedReader - Mojolicious Plugin to fetch and parse RSS & At
          # Mojolicious::Lite
          plugin 'FeedReader';
 
-        my ($info, $feed) = app->find_feeds(q{search.cpan.org});
-        my $out = app->parse_rss($feed);
-        say $_->{title} for (@{$out->{items}});
+        # Blocking:
+        get '/b' => sub {
+          my $self = shift;
+          my ($info, $feed) = $self->find_feeds(q{search.cpan.org});
+          my $out = $self->parse_rss($feed);
+          $self->render(template => 'uploads', items => $out->{items});
+        };
 
-        # In a route handler:
-        get '/' => sub {
+        # Non-blocking:
+        get '/nb' => sub {
           my $self = shift;
           $self->render_later;
           my $delay = Mojo::IOLoop->delay(
@@ -339,11 +370,10 @@ Mojolicious::Plugin::FeedReader - Mojolicious Plugin to fetch and parse RSS & At
             },
             sub {
                 my $data = pop;
-                $self->render(items => $data->{items});
+                $self->render(template => 'uploads', items => $data->{items});
             });
           $delay->wait unless Mojo::IOLoop->is_running;
-        } => 'uploads';
-
+        };
 
         app->start;
 
