@@ -362,8 +362,8 @@ B<Mojolicious::Plugin::FeedReader> implements minimalistic helpers for identifyi
 fetching and parsing RSS and Atom Feeds.  It has minimal dependencies, relying as
 much as possible on Mojolicious components - Mojo::UserAgent for fetching feeds and
 checking URLs, Mojo::DOM for XML/HTML parsing.
-It therefore rather fragile and naive, and should be considered Experimental/Toy code
-- B<use at your own risk>.
+It is therefore rather fragile and naive, and should be considered Experimental/Toy
+code - B<use at your own risk>.
 
 
 =head1 METHODS
@@ -472,7 +472,7 @@ Each item in the items array is a hashref with the following keys:
 
 =item * tags (optional) - array ref of tags or categories.
 
-=item * _raw - XML serialized text of the item's Mojo::DOM node. Note that this can be different from the original XML test in the feed.
+=item * _raw - XML serialized text of the item's Mojo::DOM node. Note that this can be different from the original XML text in the feed.
 
 =back
 
