@@ -63,9 +63,10 @@ $t->get_ok('/floo')->status_is(302);
 like( $feeds[0],  qr{http://localhost:\d+/atom.xml$} ); # abs url!
 
 # what do we do on a page with no feeds?
-
+$t->get_ok('/no_link.html')->status_is(200);
 (@feeds) = $t->app->find_feeds('/no_link.html');
 is(scalar @feeds, 0, 'no feeds');
+say "feed: $_" for (@feeds);
 
 # a feed with an incorrect mime-type:
 $t->get_ok('/olaf')->status_is(200)->content_type_like(qr/^text\/html/, 'feed served as html');

@@ -8,11 +8,22 @@ use Mojo::IOLoop;
 use HTTP::Date;
 use Carp "croak";
 
+our @time_fields
+  = (qw(pubDate published created issued updated modified dc\:date));
+our %is_time_field = map { $_ => 1 } @time_fields;
+
+# feed mime-types:
+our @feed_types = (
+  'application/x.atom+xml', 'application/atom+xml',
+  'application/xml',        'text/xml',
+  'application/rss+xml',    'application/rdf+xml'
+);
+our %is_feed = map { $_ => 1 } @feed_types;
+
 sub register {
   my ($self, $app) = @_;
   foreach my $method (
-    qw( find_feeds parse_rss parse_rss_dom parse_rss_channel parse_rss_item )
-    )
+    qw( find_feeds parse_rss parse_rss_dom parse_rss_channel parse_rss_item ))
   {
     $app->helper($method => \&{$method});
   }
@@ -80,11 +91,19 @@ sub parse_rss_channel {
   my ($self, $dom) = @_;
   my %info;
   foreach my $k (
-    qw{title subtitle description tagline link:not([rel]) link[rel=alternate]})
+    qw{title subtitle description tagline link:not([rel]) link[rel=alternate] dc\:creator author webMaster},
+    @time_fields
+    )
   {
     my $p = $dom->at("channel > $k") || $dom->at("feed > $k");   # direct child
     if ($p) {
       $info{$k} = $p->text || $p->content || $p->attr('href');
+      if ($k eq 'author' && $p->at('name')) {
+         $info{$k} = $p->at('name')->text || $p->at('name')->content;
+      }
+      if ($is_time_field{$k}) {
+        $info{$k} = str2time($info{$k});
+      }
     }
   }
   my ($htmlUrl)
@@ -97,6 +116,22 @@ sub parse_rss_channel {
   $info{htmlUrl}     = $htmlUrl     if ($htmlUrl);
   $info{description} = $description if ($description);
 
+  # normalize fields:
+  my @replace = (
+    'pubDate'  => 'published',
+    'dc\:date' => 'published',
+    'created'  => 'published',
+    'issued'   => 'published',
+    'updated'  => 'published',
+    'modified' => 'published',
+    'dc\:creator' => 'author',
+    'webMaster' => 'author'
+  );
+  while (my ($old, $new) = splice(@replace, 0, 2)) {
+    if ($info{$old} && !$info{$new}) {
+      $info{$new} = delete $info{$old};
+    }
+  }
   return (keys %info) ? \%info : undef;
 }
 
@@ -104,7 +139,8 @@ sub parse_rss_item {
   my ($self, $item) = @_;
   my %h;
   foreach my $k (
-    qw(title id summary guid content description content\:encoded xhtml\:body pubDate published updated created issued modified dc\:date)
+    qw(title id summary guid content description content\:encoded xhtml\:body dc\:creator author),
+    @time_fields
     )
   {
     my $p = $item->at($k);
@@ -116,16 +152,13 @@ sub parse_rss_item {
         if ($p->type =~ /\:/
         && $k ne 'content\:encoded'
         && $k ne 'xhtml\:body'
-        && $k ne 'dc\:date');
+        && $k ne 'dc\:date'
+        && $k ne 'dc\:creator');
       $h{$k} = $p->text || $p->content;
-      if ( $k eq 'pubDate'
-        || $k eq 'published'
-        || $k eq 'updated'
-        || $k eq 'dc\:date'
-        || $k eq 'created'
-        || $k eq 'issued'
-        || $k eq 'modified')
-      {
+      if ($k eq 'author' && $p->at('name')) {
+        $h{$k} = $p->at('name')->text;
+      }
+      if ($is_time_field{$k}) {
         $h{$k} = str2time($h{$k});
       }
     }
@@ -161,20 +194,21 @@ sub parse_rss_item {
   }
   #
   # normalize fields:
-  my %replace = (
+  my @replace = (
     'content\:encoded' => 'content',
     'xhtml\:body'      => 'content',
+    'summary'          => 'description',
     'pubDate'          => 'published',
     'dc\:date'         => 'published',
-    'summary'          => 'description',
-    'updated'          => 'published',
     'created'          => 'published',
     'issued'           => 'published',
+    'updated'          => 'published',
     'modified'         => 'published',
+    'dc\:creator'      => 'author'
 
     #    'guid'             => 'link'
   );
-  while (my ($old, $new) = each %replace) {
+  while (my ($old, $new) = splice(@replace, 0, 2)) {
     if ($h{$old} && !$h{$new}) {
       $h{$new} = delete $h{$old};
     }
@@ -234,16 +268,14 @@ sub find_feeds {
   my $cb   = (ref $_[-1] eq 'CODE') ? pop @_ : undef;
   $self->ua->max_redirects(5)->connect_timeout(30);
   my $main = sub {
-      my ($tx) = @_;
-      my @feeds;
-      return unless ($tx->success && $tx->res->code == 200);
-      eval {
-        @feeds = _find_feed_links($self, $tx->req->url, $tx->res);
-      };
-      if ($@) {
-        croak "Exception in find_feeds - ", $@;
-      };
-      return (@feeds);
+    my ($tx) = @_;
+    my @feeds;
+    return unless ($tx->success && $tx->res->code == 200);
+    eval { @feeds = _find_feed_links($self, $tx->req->url, $tx->res); };
+    if ($@) {
+      croak "Exception in find_feeds - ", $@;
+    }
+    return (@feeds);
   };
   if ($cb) {    # non-blocking:
     $self->ua->get(
@@ -252,22 +284,18 @@ sub find_feeds {
         my ($ua, $tx) = @_;
         my (@feeds) = $main->($tx);
         $cb->(@feeds);
-      });
+      }
+    );
   }
   else {
-    my $tx       = $self->ua->get($url);
+    my $tx = $self->ua->get($url);
     return $main->($tx);
   }
 }
 
 sub _find_feed_links {
   my ($self, $url, $res) = @_;
-  my %is_feed = map { $_ => 1 } (
 
-    # feed mime-types:
-    'application/x.atom+xml', 'application/atom+xml', 'application/xml',
-    'text/xml',               'application/rss+xml',  'application/rdf+xml',
-  );
   state $feed_ext = qr/\.(?:rss|xml|rdf)$/;
   my @feeds;
 
@@ -462,6 +490,10 @@ On success, the result returned is a hashref with the following keys:
 
 =item * tagline (optional)
 
+=item * author (optional)
+
+=item * published (optional)
+
 =back
 
 Each item in the items array is a hashref with the following keys:
@@ -481,6 +513,8 @@ Each item in the items array is a hashref with the following keys:
 =item * guid (optional)
 
 =item * published (optional)
+
+=item * author (optional)
 
 =item * tags (optional) - array ref of tags or categories.
 

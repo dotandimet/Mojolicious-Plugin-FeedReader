@@ -4,6 +4,7 @@ use Test::More;
 use Test::Mojo;
 use Mojo::URL;
 use Mojo::Util qw(slurp);
+use HTTP::Date qw(time2isoz);
 
 use Mojolicious::Lite;
 plugin 'FeedReader';
@@ -52,7 +53,7 @@ is($feed->{title}, 'First Weblog');
 my $delay = Mojo::IOLoop->delay(sub {
   my ($delay, $feed) = @_;
   isa_ok($feed, 'HASH');
-  say ref $feed;
+  #say ref $feed;
   is($feed->{title}, 'First Weblog');
 });
 
@@ -72,11 +73,12 @@ for my $file (sort keys %Feeds) {
     is($feed->{title}, 'First Weblog');
     is($feed->{htmlUrl}, 'http://localhost/weblog/');
     is($feed->{description}, 'This is a test weblog.');
-    # my $dt = $feed->modified;
+    my $dt = $feed->{published};
     # isa_ok($dt, 'DateTime');
-    # $dt->set_time_zone('UTC');
-    # is($dt->iso8601, '2004-05-30T07:39:57');
-    # is($feed->author, 'Melody');
+    #  $dt->set_time_zone('UTC');
+    ok(defined($feed->{published}), 'feed published defined');
+    is(time2isoz($dt), '2004-05-30 07:39:57Z');
+    is($feed->{author}, 'Melody', 'feed author');
 
     my $entries = $feed->{items};
     is(scalar @$entries, 2);
@@ -86,11 +88,14 @@ for my $file (sort keys %Feeds) {
 #     $dt = $entry->issued;
 #     isa_ok($dt, 'DateTime');
 #     $dt->set_time_zone('UTC');
-#     is($dt->iso8601, '2004-05-30T07:39:25');
+    #say "Raw Entry: ", $entry->{'_raw'};
+    #say join q{,}, sort keys %$entry;
+    ok(defined $entry->{published}, 'has pubdate');
+     is(time2isoz($entry->{published}), '2004-05-30 07:39:25Z');
     like($entry->{content}, qr/<p>Hello!<\/p>/);
     is($entry->{description}, 'Hello!...');
     is($entry->{'tags'}[0], 'Travel');
-#    is($entry->author, 'Melody');
+    is($entry->{author}, 'Melody', 'entry author');
   # no id if no id in feed - just link
     ok($entry->{id});
 }
