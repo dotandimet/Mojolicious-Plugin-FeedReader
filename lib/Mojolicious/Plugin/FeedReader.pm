@@ -522,8 +522,24 @@ Each item in the items array is a hashref with the following keys:
 
 =back
 
+=head1 CREDITS
+
+Some tests adapted from L<Feed::Find> and L<XML::Feed>. Feed autodiscovery adapted from l<Feed::Find>.
+
+Test data (web pages, feeds and excerpts) included in this package is intended for testing purposes only, and is not meant in anyway
+to infringe on the rights of the respective authors.
+
+=head1 COPYRIGHT AND LICENSE
+
+Copyright (C) 2014, Dotan Dimet.
+
+This program is free software, you can redistribute it and/or modify it
+under the terms of the Artistic License version 2.0.
+
 =head1 SEE ALSO
 
-L<Mojolicious>, L<Mojolicious::Guides>, L<http://mojolicio.us>.
+L<Mojolicious>, L<Mojolicious::Guides>, L<http://mojolicio.us>
+
+L<XML::Feed>, L<Feed::Find>, L<HTTP::Date>
 
 =cut
