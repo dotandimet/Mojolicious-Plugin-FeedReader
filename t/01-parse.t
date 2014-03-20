@@ -9,7 +9,8 @@ use HTTP::Date qw(time2isoz);
 use Mojolicious::Lite;
 plugin 'FeedReader';
 
-push @{app->static->paths}, File::Spec->catdir($FindBin::Bin, 'samples');
+my $sample_dir = File::Spec->catdir($FindBin::Bin, 'samples');
+push @{app->static->paths}, $sample_dir;
 my $t = Test::Mojo->new(app);
 
 
@@ -25,7 +26,7 @@ my %Feeds = (
 
 ## First, test all of the various ways of calling parse.
 my $feed;
-my $file = File::Spec->catdir($FindBin::Bin, 'samples', 'atom.xml');
+my $file = File::Spec->catdir($sample_dir, 'atom.xml');
 $feed = $t->app->parse_rss($file);
 isa_ok($feed, 'HASH');
 is($feed->{title}, 'First Weblog');
@@ -100,21 +101,22 @@ for my $file (sort keys %Feeds) {
     ok($entry->{id});
 }
 
-$feed = $t->app->parse_rss('t/samples/rss20-no-summary.xml')
+$feed = $t->app->parse_rss(File::Spec->catdir($sample_dir, 'rss20-no-summary.xml'))
     or die "parse fail";
 my $entry = $feed->{items}[0];
 ok(!$entry->{summary});
 like($entry->{content}, qr/<p>This is a test.<\/p>/);
 
-$feed = $t->app->parse_rss('t/samples/rss10-invalid-date.xml')
+$feed = $t->app->parse_rss(File::Spec->catdir($sample_dir, 'rss10-invalid-date.xml'))
     or die "parse fail";
 $entry = $feed->{items}[0];
 ok(!$entry->{issued});   ## Should return undef, but not die.
 ok(!$entry->{modified}); ## Same.
+ok(!$entry->{published}); ## Same.
 
 # summary vs. itunes:summary:
 
-$feed = $t->app->parse_rss('t/samples/itunes_summary.xml')
+$feed = $t->app->parse_rss(File::Spec->catdir($sample_dir, 'itunes_summary.xml'))
   or die "parse failed";
 $entry = $feed->{items}[0];
 isnt($entry->{summary}, 'This is for &8220;itunes sake&8221;.');
