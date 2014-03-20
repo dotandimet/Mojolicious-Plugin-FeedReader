@@ -348,7 +348,7 @@ sub _find_feed_links {
 
 =head1 NAME
 
-Mojolicious::Plugin::FeedReader - Mojolicious Plugin to fetch and parse RSS & Atom feeds
+Mojolicious::Plugin::FeedReader - Mojolicious plugin to find and parse RSS & Atom feeds
 
 =head1 SYNOPSIS
 
