@@ -1,7 +1,7 @@
 package Mojolicious::Plugin::FeedReader;
 use Mojo::Base 'Mojolicious::Plugin';
 
-our $VERSION = '0.01';
+our $VERSION = '0.02';
 use Mojo::Util qw(decode slurp trim);
 use Mojo::DOM;
 use Mojo::IOLoop;
