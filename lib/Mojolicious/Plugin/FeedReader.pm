@@ -361,7 +361,7 @@ Mojolicious::Plugin::FeedReader - Mojolicious plugin to find and parse RSS & Ato
         # Blocking:
         get '/b' => sub {
           my $self = shift;
-          my ($info, $feed) = $self->find_feeds(q{search.cpan.org});
+          my ($feed) = $self->find_feeds(q{search.cpan.org});
           my $out = $self->parse_rss($feed);
           $self->render(template => 'uploads', items => $out->{items});
         };
@@ -425,13 +425,12 @@ B<Mojolicious::Plugin::FeedReader> implements the following helpers.
 =head2 find_feeds
 
   # Call blocking
-  my ($info, @feeds) = app->find_feeds('search.cpan.org');
-  # $info is a hash ref
+  my (@feeds) = app->find_feeds('search.cpan.org');
   # @feeds is a list of Mojo::URL objects
 
   # Call non-blocking
   $self->find_feeds('http://example.com', sub {
-    my ($info, @feeds) = @_;
+    my (@feeds) = @_;
     unless (@feeds) {
       $self->render_exception("no feeds found, " . $info->{error});
     }

@@ -9,7 +9,7 @@ plugin 'FeedReader';
 # Blocking:
 get '/b' => sub {
   my $self = shift;
-  my ($info, $feed) = $self->find_feeds(q{search.cpan.org});
+  my ($feed) = $self->find_feeds(q{search.cpan.org});
   my $out = $self->parse_rss($feed);
   $self->render(template => 'uploads', items => $out->{items});
 };
