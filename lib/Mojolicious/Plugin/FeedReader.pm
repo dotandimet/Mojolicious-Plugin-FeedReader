@@ -480,7 +480,7 @@ On success, the result returned is a hashref with the following keys:
 
 =item * title
 
-=item * description
+=item * description (may be filled from subtitle or tagline if absent)
 
 =item * htmlUrl - web page URL associated with the feed
 
@@ -490,9 +490,9 @@ On success, the result returned is a hashref with the following keys:
 
 =item * tagline (optional)
 
-=item * author (optional)
+=item * author (name of author field, or dc:creator or webMaster)
 
-=item * published (optional)
+=item * published - time in epoch seconds (may be filled with pubDate, dc:date, created, issued, updated or modified)
 
 =back
 
@@ -504,19 +504,19 @@ Each item in the items array is a hashref with the following keys:
 
 =item * link
 
-=item * content
+=item * content (may be filled with content:encoded, xhtml:body or description fields)
 
-=item * id
+=item * id (will be equal to link or guid if it is undefined and either of those fields exists)
 
-=item * description (optional) - usually a shorter form of the content
+=item * description (optional) - usually a shorter form of the content (may be filled with summary if description is missing)
 
 =item * guid (optional)
 
-=item * published (optional)
+=item * published - time in epoch seconds (may be filled with pubDate, dc:date, created, issued, updated or modified)
 
-=item * author (optional)
+=item * author (may be filled from author or dc:creator)
 
-=item * tags (optional) - array ref of tags or categories.
+=item * tags (optional) - array ref of tags, categories or dc:subjects.
 
 =item * _raw - XML serialized text of the item's Mojo::DOM node. Note that this can be different from the original XML text in the feed.
 
