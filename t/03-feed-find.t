@@ -60,7 +60,10 @@ $delay->wait unless (Mojo::IOLoop->is_running);
 # Let's try something with redirects:
 $t->get_ok('/floo')->status_is(302);
 (@feeds) = $t->app->find_feeds('/floo');
-like( $feeds[0],  qr{http://localhost:\d+/atom.xml$} ); # abs url!
+is( $feeds[0],  undef, 'default UA does not follow redirects'); # default UA doesn't follow redirects!
+$t->app->ua->max_redirects(3);
+(@feeds) = $t->app->find_feeds('/floo');
+like( $feeds[0],  qr{http://localhost:\d+/atom.xml$}, 'found with redirect' ); # abs url!
 
 # what do we do on a page with no feeds?
 $t->get_ok('/no_link.html')->status_is(200);

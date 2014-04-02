@@ -36,7 +36,7 @@ isa_ok($feed, 'HASH');
 is($feed->{title}, 'First Weblog');
 # And dom:
 my $tx = $t->app->ua->get('/atom.xml');
-$feed = $t->app->parse_rss($tx->res->dom);
+$feed = $t->app->parse_rss($tx->res->content->asset);
 isa_ok($feed, 'HASH');
 is($feed->{title}, 'First Weblog');
 
@@ -126,7 +126,7 @@ is($entry->{content}, '<p>This is more of the same</p>
 ');
 
 # Let's do some errors - trying to parse html responses, basically
-$feed = $t->app->parse_rss( $t->app->ua->get('/link1.html')->res->dom );
+$feed = $t->app->parse_rss( $t->app->ua->get('/link1.html')->res->content->asset );
 ok(! exists $feed->{items}, 'no entries from html page');
 ok(! exists $feed->{title}, 'no title from html page');
 ok(! exists $feed->{description}, 'no description from html page');
@@ -136,12 +136,13 @@ ok(! exists $feed->{htmlUrl}, 'no htmlUrl from html page');
 # encoding issue when reading utf-8 text from file vs. from URL:
 
 my $feed_from_file = $t->app->parse_rss(File::Spec->catdir($sample_dir, 'plasmastrum.xml'));
-my $tx = $t->get_ok('/plasmastrum.xml')->tx;
-my $feed_from_dom = $t->app->parse_rss( $tx->res->dom );
+$tx = $t->get_ok('/plasmastrum.xml')->tx;
+my $feed_from_tx = $t->app->parse_rss( $tx->res->content->asset );
+my $feed_from_url = $t->app->parse_rss( Mojo::URL->new('/plasmastrum.xml') );
 
 for my $i (5,7,24) {
-  diag("item # $i");
-  is($feed_from_file->{items}[$i]{title}, $feed_from_dom->{items}[$i]{title}, 'encoding check');
+  is($feed_from_file->{items}[$i]{title}, $feed_from_tx->{items}[$i]{title}, 'encoding check');
+  is($feed_from_file->{items}[$i]{title}, $feed_from_url->{items}[$i]{title}, 'encoding check');
 }
 
 

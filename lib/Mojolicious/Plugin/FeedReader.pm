@@ -23,33 +23,40 @@ our %is_feed = map { $_ => 1 } @feed_types;
 sub register {
   my ($self, $app) = @_;
   foreach my $method (
-    qw( find_feeds parse_rss parse_rss_dom parse_rss_channel parse_rss_item parse_opml))
+    qw( find_feeds parse_rss parse_opml))
   {
     $app->helper($method => \&{$method});
   }
 }
 
+sub make_dom {
+  my ($xml) = @_;
+  my $ass;
+  if (!ref $xml) {    # assume file
+    $ass = Mojo::Asset::File->new(path => $xml);
+    die "Unable to read file $xml: $!" unless ($ass);
+  }
+  elsif (ref $xml eq 'SCALAR') {    # assume string
+    $ass = Mojo::Asset::Memory->new->add_chunk($$xml);
+  }
+  elsif ($xml->isa('Mojo::Message')) {
+    $ass = $xml->content->asset;
+  }
+  else {
+    die "object $xml is a " . ref $xml . " and I want a Mojo::Asset"
+      unless ($xml->isa('Mojo::Asset'));
+    $ass = $xml;
+  }
+  my $rss_str = decode 'UTF-8', $ass->slurp;
+  die "Failed to read asset $xml (as UTF-8): $!" unless ($rss_str);
+  my $dom = Mojo::DOM->new->parse($rss_str);
+  return $dom;
+}
+
 sub parse_rss {
   my ($c, $xml, $cb) = @_;
   my $dom;
-  if (!ref $xml) {    # assume file
-    my $rss_str = decode 'UTF-8', slurp $xml;
-    die "Failed to read file $xml (as UTF-8): $!" unless ($rss_str);
-    $dom = Mojo::DOM->new->parse($rss_str);
-  }
-  elsif (ref $xml eq 'SCALAR') {    # assume string
-    $dom = Mojo::DOM->new->parse($$xml);
-  }
-  elsif ($xml->can('slurp')) {      # assume Mojo::Asset
-    my $rss_str = decode 'UTF-8', $xml->slurp;
-    die "Failed to read asset $xml (as UTF-8): $!" unless ($rss_str);
-    $dom = Mojo::DOM->new->parse($rss_str);
-  }
-  elsif ($xml->isa('Mojo::DOM')) {
-    $dom = $xml;
-  }
-  elsif ($xml->isa('Mojo::URL')) {
-
+  if (ref $xml eq 'Mojo::URL') {
     # this is the only case where we might go non-blocking:
     if ($cb) {
       $c->ua->get(
@@ -58,28 +65,31 @@ sub parse_rss {
           my ($ua, $tx) = @_;
           my $feed;
           if ($tx->success) {
-            eval { $feed = $c->parse_rss_dom($tx->res->dom); };
+            eval { $feed = parse_rss_dom(make_dom($tx->res->content->asset)); };
           }
           $c->$cb($feed);
         }
       );
     }
     else {
-      $dom = $c->ua->get($xml)->res->dom;
+      $dom = make_dom($c->ua->get($xml)->res->content->asset);
     }
   }
-  return ($dom) ? $c->parse_rss_dom($dom) : 1;
+  else {
+    $dom = make_dom($xml);
+  }
+  return ($dom) ? parse_rss_dom($dom) : 1;
 }
 
 sub parse_rss_dom {
-  my ($self, $dom) = @_;
+  my ($dom) = @_;
   die "Argument $dom is not a Mojo::DOM" unless ($dom->isa('Mojo::DOM'));
-  my $feed    = $self->parse_rss_channel($dom);    # Feed properties
+  my $feed    = parse_rss_channel($dom);    # Feed properties
   my $items   = $dom->find('item');
   my $entries = $dom->find('entry');               # Atom
   my $res     = [];
   foreach my $item ($items->each, $entries->each) {
-    push @$res, $self->parse_rss_item($item);
+    push @$res, parse_rss_item($item);
   }
   if (@$res) {
     $feed->{'items'} = $res;
@@ -88,7 +98,7 @@ sub parse_rss_dom {
 }
 
 sub parse_rss_channel {
-  my ($self, $dom) = @_;
+  my ($dom) = @_;
   my %info;
   foreach my $k (
     qw{title subtitle description tagline link:not([rel]) link[rel=alternate] dc\:creator author webMaster},
@@ -136,7 +146,7 @@ sub parse_rss_channel {
 }
 
 sub parse_rss_item {
-  my ($self, $item) = @_;
+  my ($item) = @_;
   my %h;
   foreach my $k (
     qw(title id summary guid content description content\:encoded xhtml\:body dc\:creator author),
@@ -334,7 +344,7 @@ sub _find_feed_links {
       );
     unless (@feeds)
     {    # call me crazy, but maybe this is just a feed served as HTML?
-      if (parse_rss_dom($self, $res->dom)) {
+      if (parse_rss($res)) {
         push @feeds, Mojo::URL->new($url)->to_abs;
       }
     }
