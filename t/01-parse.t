@@ -140,6 +140,7 @@ my $tx = $t->get_ok('/plasmastrum.xml')->tx;
 my $feed_from_dom = $t->app->parse_rss( $tx->res->dom );
 
 for (my $i = 0; $i < scalar @{$feed_from_file->{items}}; $i++) {
+  diag("item # $i");
   is($feed_from_file->{items}[$i]{title}, $feed_from_dom->{items}[$i]{title}, 'encoding check');
 }
 
