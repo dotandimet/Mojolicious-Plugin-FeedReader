@@ -65,6 +65,7 @@ $t->app->parse_rss(Mojo::URL->new("/atom.xml"),
     $delay->begin(0)->($feed);
   });
 $delay->wait unless (Mojo::IOLoop->is_running);
+
 ## Then try calling all of the unified API methods.
 for my $file (sort keys %Feeds) {
     my $path = File::Spec->catdir($FindBin::Bin, 'samples', $file);
@@ -130,4 +131,18 @@ ok(! exists $feed->{items}, 'no entries from html page');
 ok(! exists $feed->{title}, 'no title from html page');
 ok(! exists $feed->{description}, 'no description from html page');
 ok(! exists $feed->{htmlUrl}, 'no htmlUrl from html page');
+
+
+# encoding issue when reading utf-8 text from file vs. from URL:
+
+my $feed_from_file = $t->app->parse_rss(File::Spec->catdir($sample_dir, 'plasmastrum.xml'));
+my $tx = $t->get_ok('/plasmastrum.xml')->tx;
+my $feed_from_dom = $t->app->parse_rss( $tx->res->dom );
+
+for (my $i = 0; $i < scalar @{$feed_from_file->{items}}; $i++) {
+  is($feed_from_file->{items}[$i]{title}, $feed_from_dom->{items}[$i]{title}, 'encoding check');
+}
+
+
+
 done_testing();

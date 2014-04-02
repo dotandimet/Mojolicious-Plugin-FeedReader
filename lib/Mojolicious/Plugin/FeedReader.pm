@@ -23,7 +23,7 @@ our %is_feed = map { $_ => 1 } @feed_types;
 sub register {
   my ($self, $app) = @_;
   foreach my $method (
-    qw( find_feeds parse_rss parse_rss_dom parse_rss_channel parse_rss_item ))
+    qw( find_feeds parse_rss parse_rss_dom parse_rss_channel parse_rss_item parse_opml))
   {
     $app->helper($method => \&{$method});
   }
@@ -266,10 +266,11 @@ sub find_feeds {
   my $self = shift;
   my $url  = shift;
   my $cb   = (ref $_[-1] eq 'CODE') ? pop @_ : undef;
-  $self->ua->max_redirects(5)->connect_timeout(30);
+#  $self->ua->max_redirects(5)->connect_timeout(30);
   my $main = sub {
     my ($tx) = @_;
     my @feeds;
+    if ($tx->success) { say $tx->res->code } else { say $tx->error };
     return unless ($tx->success && $tx->res->code == 200);
     eval { @feeds = _find_feed_links($self, $tx->req->url, $tx->res); };
     if ($@) {
@@ -339,6 +340,33 @@ sub _find_feed_links {
     }
   }
   return @feeds;
+}
+
+sub parse_opml {
+  my ($self, $opml_file) = @_;
+  my $opml_str = decode 'UTF-8',
+    (ref $opml_file) ? $opml_file->slurp : slurp $opml_file;
+  my $d = Mojo::DOM->new->parse($opml_str);
+  my (%subscriptions, %categories);
+  for my $item ($d->find(q{outline})->each) {
+    my $node = $item->attr;
+    if (!defined $node->{type} || $node->{type} ne 'rss') {
+      my $cat = $node->{title} || $node->{text};
+      $categories{$cat} = $item->children->pluck('attr', 'xmlUrl');
+    }
+    else {    # file by RSS URL:
+      $subscriptions{$node->{xmlUrl}} = $node;
+    }
+  }
+
+  # assign categories
+  for my $cat (keys %categories) {
+    for my $rss ($categories{$cat}->each) {
+      $subscriptions{$rss}{'categories'} ||= [];
+      push @{$subscriptions{$rss}{'categories'}}, $cat;
+    }
+  }
+  return (values %subscriptions);
 }
 
 
