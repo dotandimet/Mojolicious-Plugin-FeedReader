@@ -344,7 +344,7 @@ sub _find_feed_links {
       );
     unless (@feeds)
     {    # call me crazy, but maybe this is just a feed served as HTML?
-      if (parse_rss($res)) {
+      if ($self->parse_rss($res)) {
         push @feeds, Mojo::URL->new($url)->to_abs;
       }
     }
