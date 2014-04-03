@@ -1,0 +1,7 @@
+Revision history for perl module Mojolicious::Plugin::FeedReader
+
+0.03 2014-04-03
+
+  - The helper parse_feed introduced as an alias (and future replacement) for parse_rss
+  - Calling parse_feed with a Mojo::DOM is not recommended because of encoding issues
+  - some re-writing of how a Mojo::DOM is created from the input (no interface change)

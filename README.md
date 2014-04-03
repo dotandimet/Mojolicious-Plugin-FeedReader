@@ -14,7 +14,7 @@ Mojolicious::Plugin::FeedReader - Mojolicious plugin to find and parse RSS & Ato
         get '/b' => sub {
           my $self = shift;
           my ($feed) = $self->find_feeds(q{search.cpan.org});
-          my $out = $self->parse_rss($feed);
+          my $out = $self->parse_feed($feed);
           $self->render(template => 'uploads', items => $out->{items});
         };
 
@@ -28,7 +28,7 @@ Mojolicious::Plugin::FeedReader - Mojolicious plugin to find and parse RSS & Ato
             },
             sub {
               my $feed = pop;
-              $self->parse_rss($feed, shift->begin);
+              $self->parse_feed($feed, shift->begin);
             },
             sub {
                 my $data = pop;
@@ -93,29 +93,29 @@ __Mojolicious::Plugin::FeedReader__ implements the following helpers.
 A Mojolicious port of [Feed::Find](https://metacpan.org/pod/Feed::Find) by Benjamin Trott. This helper implements feed auto-discovery for finding syndication feeds, given a URI.
 If given a callback function as an additional argument, execution will be non-blocking.
 
-## parse\_rss
+## parse\_feed
 
-    # parse an RSS feed
+    # parse an RSS/Atom feed
     # blocking
     my $url = Mojo::URL->new('http://rss.slashdot.org/Slashdot/slashdot');
-    my $feed = $self->parse_rss($url);
+    my $feed = $self->parse_feed($url);
     for my $item (@{$feed->{items}}) {
       say $_ for ($item->{title}, $item->{description}, 'Tags: ' . join q{,}, @{$item->{tags}});
     }
 
     # non-blocking
-    $self->parse_rss($url, sub {
+    $self->parse_feed($url, sub {
       my ($c, $feed) = @_;
       $c->render(text => "Feed tagline: " . $feed->{tagline});
     });
 
     # parse a file
-    $feed2 = $self->parse_rss('/downloads/foo.rss');
+    $feed2 = $self->parse_feed('/downloads/foo.rss');
 
-    # parse response DOM
+    # parse response
     $self->ua->get($feed_url, sub {
       my ($ua, $tx) = @_;
-      my $feed = $self->parse_rss($tx->res->dom);
+      my $feed = $self->parse_feed($tx->res);
     });
 
 A minimalist liberal RSS/Atom parser, using Mojo::DOM queries.

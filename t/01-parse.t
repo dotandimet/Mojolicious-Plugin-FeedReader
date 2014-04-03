@@ -14,7 +14,7 @@ push @{app->static->paths}, $sample_dir;
 my $t = Test::Mojo->new(app);
 
 
-# test the parse_rss helper.
+# test the parse_feed helper.
 
 # tests lifted from XML::Feed
 
@@ -26,28 +26,36 @@ my %Feeds = (
 
 ## First, test all of the various ways of calling parse.
 my $feed;
+# File:
 my $file = File::Spec->catdir($sample_dir, 'atom.xml');
-$feed = $t->app->parse_rss($file);
+$feed = $t->app->parse_feed($file);
 isa_ok($feed, 'HASH');
 is($feed->{title}, 'First Weblog');
 my $fh = Mojo::Asset::File->new(path => $file) or die "Can't open $file: $!";
-$feed = $t->app->parse_rss($fh);
+$feed = $t->app->parse_feed($fh);
 isa_ok($feed, 'HASH');
 is($feed->{title}, 'First Weblog');
-# And dom:
+
+# And DOM (deprecated):
 my $tx = $t->app->ua->get('/atom.xml');
-$feed = $t->app->parse_rss($tx->res->content->asset);
+$feed = $t->app->parse_feed($tx->res->dom);
+isa_ok($feed, 'HASH');
+is($feed->{title}, 'First Weblog');
+
+# And a slurp-able:
+$tx = $t->app->ua->get('/atom.xml');
+$feed = $t->app->parse_feed($tx->res->content->asset);
 isa_ok($feed, 'HASH');
 is($feed->{title}, 'First Weblog');
 
 # parse a string
 my $str = slurp $file;
-$feed = $t->app->parse_rss(\$str);
+$feed = $t->app->parse_feed(\$str);
 isa_ok($feed, 'HASH');
 is($feed->{title}, 'First Weblog');
 
 # parse a URL 
-$feed = $t->app->parse_rss(Mojo::URL->new("/atom.xml"));
+$feed = $t->app->parse_feed(Mojo::URL->new("/atom.xml"));
 isa_ok($feed, 'HASH');
 is($feed->{title}, 'First Weblog');
 
@@ -59,7 +67,7 @@ my $delay = Mojo::IOLoop->delay(sub {
 });
 
 # parse a URL - non-blocking - this revealed a bug, yay!
-$t->app->parse_rss(Mojo::URL->new("/atom.xml"),
+$t->app->parse_feed(Mojo::URL->new("/atom.xml"),
   sub {
     my ($c, $feed) = @_;
     $delay->begin(0)->($feed);
@@ -69,7 +77,7 @@ $delay->wait unless (Mojo::IOLoop->is_running);
 ## Then try calling all of the unified API methods.
 for my $file (sort keys %Feeds) {
     my $path = File::Spec->catdir($FindBin::Bin, 'samples', $file);
-    my $feed = $t->app->parse_rss($path) or die "parse_rss returned undef";
+    my $feed = $t->app->parse_feed($path) or die "parse_feed returned undef";
     #is($feed->format, $Feeds{$file});
     #is($feed->language, 'en-us');
     is($feed->{title}, 'First Weblog');
@@ -102,13 +110,13 @@ for my $file (sort keys %Feeds) {
     ok($entry->{id});
 }
 
-$feed = $t->app->parse_rss(File::Spec->catdir($sample_dir, 'rss20-no-summary.xml'))
+$feed = $t->app->parse_feed(File::Spec->catdir($sample_dir, 'rss20-no-summary.xml'))
     or die "parse fail";
 my $entry = $feed->{items}[0];
 ok(!$entry->{summary});
 like($entry->{content}, qr/<p>This is a test.<\/p>/);
 
-$feed = $t->app->parse_rss(File::Spec->catdir($sample_dir, 'rss10-invalid-date.xml'))
+$feed = $t->app->parse_feed(File::Spec->catdir($sample_dir, 'rss10-invalid-date.xml'))
     or die "parse fail";
 $entry = $feed->{items}[0];
 ok(!$entry->{issued});   ## Should return undef, but not die.
@@ -117,7 +125,7 @@ ok(!$entry->{published}); ## Same.
 
 # summary vs. itunes:summary:
 
-$feed = $t->app->parse_rss(File::Spec->catdir($sample_dir, 'itunes_summary.xml'))
+$feed = $t->app->parse_feed(File::Spec->catdir($sample_dir, 'itunes_summary.xml'))
   or die "parse failed";
 $entry = $feed->{items}[0];
 isnt($entry->{summary}, 'This is for &8220;itunes sake&8221;.');
@@ -126,7 +134,7 @@ is($entry->{content}, '<p>This is more of the same</p>
 ');
 
 # Let's do some errors - trying to parse html responses, basically
-$feed = $t->app->parse_rss( $t->app->ua->get('/link1.html')->res->content->asset );
+$feed = $t->app->parse_feed( $t->app->ua->get('/link1.html')->res->content->asset );
 ok(! exists $feed->{items}, 'no entries from html page');
 ok(! exists $feed->{title}, 'no title from html page');
 ok(! exists $feed->{description}, 'no description from html page');
@@ -135,10 +143,10 @@ ok(! exists $feed->{htmlUrl}, 'no htmlUrl from html page');
 
 # encoding issue when reading utf-8 text from file vs. from URL:
 
-my $feed_from_file = $t->app->parse_rss(File::Spec->catdir($sample_dir, 'plasmastrum.xml'));
+my $feed_from_file = $t->app->parse_feed(File::Spec->catdir($sample_dir, 'plasmastrum.xml'));
 $tx = $t->get_ok('/plasmastrum.xml')->tx;
-my $feed_from_tx = $t->app->parse_rss( $tx->res->content->asset );
-my $feed_from_url = $t->app->parse_rss( Mojo::URL->new('/plasmastrum.xml') );
+my $feed_from_tx = $t->app->parse_feed( $tx->res->content->asset );
+my $feed_from_url = $t->app->parse_feed( Mojo::URL->new('/plasmastrum.xml') );
 
 for my $i (5,7,24) {
   is($feed_from_file->{items}[$i]{title}, $feed_from_tx->{items}[$i]{title}, 'encoding check');
