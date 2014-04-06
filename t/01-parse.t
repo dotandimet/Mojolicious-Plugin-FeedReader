@@ -48,6 +48,11 @@ $feed = $t->app->parse_feed($tx->res->content->asset);
 isa_ok($feed, 'HASH');
 is($feed->{title}, 'First Weblog');
 
+# String from tx...
+$feed = $t->app->parse_feed(\ $tx->res->body);
+isa_ok($feed, 'HASH');
+is($feed->{title}, 'First Weblog', 'string ref from body');
+
 # parse a string
 my $str = slurp $file;
 $feed = $t->app->parse_feed(\$str);
