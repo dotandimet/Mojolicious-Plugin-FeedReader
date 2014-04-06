@@ -343,9 +343,11 @@ sub parse_opml {
     }
   }
 
+
   # assign categories
   for my $cat (keys %categories) {
     for my $rss ($categories{$cat}->each) {
+      next unless ($subscriptions{$rss}); # don't auto-vivify for empty "categories"
       $subscriptions{$rss}{'categories'} ||= [];
       push @{$subscriptions{$rss}{'categories'}}, $cat;
     }
