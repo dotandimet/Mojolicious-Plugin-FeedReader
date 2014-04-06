@@ -21,7 +21,7 @@ my %files = (
 
 for my $type (qw(google_reader sputnik rssowl)) {
   my $opml = $files{$type};
-  diag("testing with $type export");
+  note("testing with $type export");
   my @feeds = app->parse_opml( $opml );
   is(scalar @feeds, 294, 'got 294 feeds');
   ok(defined $feeds[0]{xmlUrl}, "xmlUrl defined");
@@ -40,12 +40,12 @@ for my $type (qw(google_reader sputnik rssowl)) {
     ok(defined $feeds[293]{htmlUrl}, "htmlUrl defined");
   }
   my ($frew) = grep { $_->{xmlUrl} =~ /Foolish/ } @feeds;
-  diag( $frew->{xmlUrl} , " is sub I will test" );
+  note( $frew->{xmlUrl} , " is sub I will test" );
   my @cats = sort @{$frew->{categories}};
   is($cats[0], 'perl', $frew->{xmlUrl} . ' is in category perl');
   is(scalar @cats, 1, $frew->{xmlUrl} . ' is in one category');
   my ($abn) = grep { $_->{xmlUrl} =~ /wrongquest/ } @feeds;
-  diag( $abn->{xmlUrl} , " is sub I will test" );
+  note( $abn->{xmlUrl} , " is sub I will test" );
   @cats = sort @{$abn->{categories}};
   unless ($type eq 'sputnik') { # sputnik allows each feed to be in only one category
     is($cats[0], 'a-list', $abn->{xmlUrl} . ' is in category a-list');
