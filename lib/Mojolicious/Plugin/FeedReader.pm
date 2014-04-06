@@ -24,7 +24,7 @@ our %is_feed = map { $_ => 1 } @feed_types;
 sub register {
   my ($self, $app) = @_;
   foreach my $method (
-    qw( find_feeds parse_rss parse_opml))
+    qw( find_feeds parse_rss parse_opml ))
   {
     $app->helper($method => \&{$method});
   }
@@ -334,7 +334,7 @@ sub parse_opml {
   my (%subscriptions, %categories);
   for my $item ($d->find(q{outline})->each) {
     my $node = $item->attr;
-    if (!defined $node->{type} || $node->{type} ne 'rss') {
+    if (!defined $node->{xmlUrl}) {
       my $cat = $node->{title} || $node->{text};
       $categories{$cat} = $item->children->pluck('attr', 'xmlUrl');
     }
@@ -467,7 +467,7 @@ If given a callback function as an additional argument, execution will be non-bl
   # non-blocking
   $self->parse_feed($url, sub {
     my ($c, $feed) = @_;
-    $c->render(text => "Feed tagline: " . $feed->{tagline});
+    $c->render(text =>L"Feed tagline: " . $feed->{tagline});
   });
 
   # parse a file
@@ -535,7 +535,7 @@ Each item in the items array is a hashref with the following keys:
 
 =head1 CREDITS
 
-Some tests adapted from L<Feed::Find> and L<XML::Feed>. Feed autodiscovery adapted from l<Feed::Find>.
+Some tests adapted from L<Feed::Find> and L<XML:Feed> Feed autodiscovery adapted from L<Feed::Find>.
 
 Test data (web pages, feeds and excerpts) included in this package is intended for testing purposes only, and is not meant in anyway
 to infringe on the rights of the respective authors.
