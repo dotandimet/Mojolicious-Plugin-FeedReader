@@ -59,7 +59,7 @@ $feed = $t->app->parse_feed(\$str);
 isa_ok($feed, 'HASH');
 is($feed->{title}, 'First Weblog');
 
-# parse a URL 
+# parse a URL
 $feed = $t->app->parse_feed(Mojo::URL->new("/atom.xml"));
 isa_ok($feed, 'HASH');
 is($feed->{title}, 'First Weblog');
@@ -70,12 +70,12 @@ my $delay = Mojo::IOLoop->delay(sub {
   #say ref $feed;
   is($feed->{title}, 'First Weblog');
 });
-
+my $end = $delay->begin(0);
 # parse a URL - non-blocking - this revealed a bug, yay!
 $t->app->parse_feed(Mojo::URL->new("/atom.xml"),
   sub {
     my ($c, $feed) = @_;
-    $delay->begin(0)->($feed);
+    $end->($feed);
   });
 $delay->wait unless (Mojo::IOLoop->is_running);
 

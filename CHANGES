@@ -1,5 +1,9 @@
 Revision history for perl module Mojolicious::Plugin::FeedReader
 
+0.04 2014-05-09
+
+  - Fixed test broken by Mojolicious changes
+
 0.03 2014-04-03
 
   - The helper parse_feed introduced as an alias (and future replacement) for parse_rss
