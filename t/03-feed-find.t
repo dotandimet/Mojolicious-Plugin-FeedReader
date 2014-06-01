@@ -47,16 +47,18 @@ is( $feeds[0],  'http://example.com/foo.rss' );
 is( $feeds[1],  'http://example.com/foo.xml' );
 
 # Does it work the same non-blocking?
+@feeds = ();
 my $delay = Mojo::IOLoop->delay( sub {
   shift;
-  my (@feeds) = @_;
-  is( scalar @feeds, 3);
-is( $feeds[0],  'http://www.example.com/?feed=rss2' ); # abs url!
-is( $feeds[1],  'http://www.example.com/?feed=rss' ); # abs url!
-is( $feeds[2],  'http://www.example.com/?feed=atom' ); # abs url!
+  (@feeds) = @_;
 } );
 $t->app->find_feeds('/link2_multi.html', $delay->begin(0));
 $delay->wait unless (Mojo::IOLoop->is_running);
+is( scalar @feeds, 3);
+is( $feeds[0],  'http://www.example.com/?feed=rss2' ); # abs url!
+is( $feeds[1],  'http://www.example.com/?feed=rss' ); # abs url!
+is( $feeds[2],  'http://www.example.com/?feed=atom' ); # abs url!
+
 # Let's try something with redirects:
 $t->get_ok('/floo')->status_is(302);
 (@feeds) = $t->app->find_feeds('/floo');
@@ -78,16 +80,28 @@ is(scalar @feeds, 1);
 is(Mojo::URL->new($feeds[0])->path, '/olaf', 'feed served as html');
 
 # we should get more info with non-blocking:
-
-$delay = Mojo::IOLoop->delay(sub {
-  shift;
-  my (@feeds) = @_;
-  is(scalar @feeds, 0, 'no feeds');
-});
+@feeds = ();
+$delay = Mojo::IOLoop->delay(sub { shift; (@feeds) = @_; });
 
 $t->app->find_feeds('/no_link.html', $delay->begin(0) );
 $delay->wait unless (Mojo::IOLoop->is_running);
+is(scalar @feeds, 0, 'no feeds');
 
+@feeds = ();
+my $url = 'perlmonks.org';
+$t->app->find_feeds('perlmonks.org');
+is(scalar @feeds, 0, 'no feeds for perlmonks');
+@feeds = ();
+$delay = Mojo::IOLoop->delay(sub { shift; (@feeds) = @_; });
+$t->app->find_feeds('perlmonks.org', $delay->begin(0));
+$delay->wait;
+is(scalar @feeds, 0, 'no feeds for perlmonks');
+
+@feeds = ();
+$delay = Mojo::IOLoop->delay(sub { shift; (@feeds) = @_; });
+$t->app->find_feeds('slashdot.org', $delay->begin(0));
+is(scalar @feeds, 0, 'no feeds for slashdot');
+$delay->wait();
 
 
 done_testing();
