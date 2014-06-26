@@ -535,6 +535,13 @@ Each item in the items array is a hashref with the following keys:
 
 =back
 
+=head2 parse_opml
+
+Parse an OPML subscriptions file and return the list of feeds as an array of hashrefs:
+
+# Input is:
+
+
 =head1 CREDITS
 
 Some tests adapted from L<Feed::Find> and L<XML:Feed> Feed autodiscovery adapted from L<Feed::Find>.
