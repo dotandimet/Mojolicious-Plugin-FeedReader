@@ -253,7 +253,7 @@ sub find_feeds {
   my $main = sub {
     my ($tx) = @_;
     my @feeds;
-    if ($tx->success) { say $tx->res->code } else { say $tx->error };
+#    if ($tx->success) { say $tx->res->code } else { say $tx->error };
     return unless ($tx->success && $tx->res->code == 200);
     eval { @feeds = _find_feed_links($self, $tx->req->url, $tx->res); };
     if ($@) {
@@ -537,10 +537,16 @@ Each item in the items array is a hashref with the following keys:
 
 =head2 parse_opml
 
-Parse an OPML subscriptions file and return the list of feeds as an array of hashrefs:
+  my @subscriptions = app->parse_opml( 'mysubs.opml' );
+  foreach my $sub (@subscriptions) {
+    say 'RSS URL is: ',     $sub->{xmlUrl};
+    say 'Website URL is: ', $sub->{htmlUrl};
+    say 'categories: ', join ',', @{$sub->{categories}};
+  }
 
-# Input is:
+Parse an OPML subscriptions file and return the list of feeds as an array of hashrefs.
 
+Each hashref will contain an array ref in the key 'categories' listing the folders (parent nodes) in the OPML tree the subscription item appears in.
 
 =head1 CREDITS
 
