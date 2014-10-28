@@ -291,7 +291,7 @@ sub _find_feed_links {
   else {
     # we are in a web page. PHEAR.
     my $base = Mojo::URL->new(
-      $res->dom->find('head base')->pluck('attr', 'href')->join('') || $url);
+      $res->dom->find('head base')->pluck('attr', 'href')->join('') || $url)->to_abs($url);
     my $title
       = $res->dom->find('head > title')->pluck('text')->join('') || $url;
     $res->dom->find('head link')->each(
