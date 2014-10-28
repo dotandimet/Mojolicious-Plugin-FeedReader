@@ -13,6 +13,7 @@ my $sample_dir = File::Spec->catdir($FindBin::Bin, 'samples');
 push @{app->static->paths}, $sample_dir;
 my $t = Test::Mojo->new(app);
 
+get '/plasm' => sub { shift->render(data => slurp(File::Spec->catfile($sample_dir, 'plasmastrum.xml')), format => 'htm'); };
 
 # test the parse_feed helper.
 
@@ -152,10 +153,12 @@ my $feed_from_file = $t->app->parse_feed(File::Spec->catdir($sample_dir, 'plasma
 $tx = $t->get_ok('/plasmastrum.xml')->tx;
 my $feed_from_tx = $t->app->parse_feed( $tx->res->content->asset );
 my $feed_from_url = $t->app->parse_feed( Mojo::URL->new('/plasmastrum.xml') );
+my $feed_from_url2 = $t->app->parse_feed( Mojo::URL->new('/plasm') );
 
 for my $i (5,7,24) {
   is($feed_from_file->{items}[$i]{title}, $feed_from_tx->{items}[$i]{title}, 'encoding check');
   is($feed_from_file->{items}[$i]{title}, $feed_from_url->{items}[$i]{title}, 'encoding check');
+  is($feed_from_file->{items}[$i]{title}, $feed_from_url2->{items}[$i]{title}, 'encoding check');
 }
 
 
