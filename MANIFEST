@@ -18,6 +18,7 @@ t/samples/link2_multi.html
 t/samples/link3_anchor.html
 t/samples/no_link.html
 t/samples/plasmastrum.xml
+t/samples/perlmonks.html
 t/samples/rss10-invalid-date.xml
 t/samples/rss10.xml
 t/samples/rss20-no-summary.xml
