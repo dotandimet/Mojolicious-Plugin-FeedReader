@@ -470,7 +470,7 @@ If given a callback function as an additional argument, execution will be non-bl
   # non-blocking
   $self->parse_feed($url, sub {
     my ($c, $feed) = @_;
-    $c->render(text =>L"Feed tagline: " . $feed->{tagline});
+    $c->render(text => "Feed tagline: " . $feed->{tagline});
   });
 
   # parse a file
@@ -553,7 +553,7 @@ Each hashref will contain an array ref in the key 'categories' listing the folde
 
 Some tests adapted from L<Feed::Find> and L<XML:Feed> Feed autodiscovery adapted from L<Feed::Find>.
 
-Test data (web pages, feeds and excerpts) included in this package is intended for testing purposes only, and is not meant in anyway
+Test data (web pages, feeds and excerpts) included in this package is intended for testing purposes only, and is not meant in any way
 to infringe on the rights of the respective authors.
 
 =head1 COPYRIGHT AND LICENSE
