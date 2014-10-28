@@ -50,7 +50,8 @@ sub make_dom {
   else {
     die "don't know how to make a Mojo::DOM from object $xml";
   }
-  my $rss_str = decode 'UTF-8', $rss;
+  #my $rss_str = decode 'UTF-8', $rss;
+  my $rss_str = $rss;
   die "Failed to read asset $xml (as UTF-8): $!" unless ($rss_str);
   return Mojo::DOM->new->parse($rss_str);
 }
