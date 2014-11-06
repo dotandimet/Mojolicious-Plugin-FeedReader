@@ -1,7 +1,7 @@
 package Mojolicious::Plugin::FeedReader;
 use Mojo::Base 'Mojolicious::Plugin';
 
-our $VERSION = '0.05';
+our $VERSION = '0.06';
 use Mojo::Util qw(decode slurp trim);
 use Mojo::DOM;
 use Mojo::IOLoop;
@@ -292,9 +292,9 @@ sub _find_feed_links {
   else {
     # we are in a web page. PHEAR.
     my $base = Mojo::URL->new(
-      $res->dom->find('head base')->pluck('attr', 'href')->join('') || $url)->to_abs($url);
+      $res->dom->find('head base')->map('attr', 'href')->join('') || $url)->to_abs($url);
     my $title
-      = $res->dom->find('head > title')->pluck('text')->join('') || $url;
+      = $res->dom->find('head > title')->map('text')->join('') || $url;
     $res->dom->find('head link')->each(
       sub {
         my $attrs = $_->attr();
@@ -337,7 +337,7 @@ sub parse_opml {
     my $node = $item->attr;
     if (!defined $node->{xmlUrl}) {
       my $cat = $node->{title} || $node->{text};
-      $categories{$cat} = $item->children->pluck('attr', 'xmlUrl');
+      $categories{$cat} = $item->children->map('attr', 'xmlUrl');
     }
     else {    # file by RSS URL:
       $subscriptions{$node->{xmlUrl}} = $node;
