@@ -83,7 +83,7 @@ sub parse_rss {
         $xml = \$body;
       }
       else {
-        carp "Error getting feed from url $xml: ", (($tx->error) ? $tx->error : '');
+        croak "Error getting feed from url $xml: ", (($tx->error) ? $tx->error->{message} : '');
       }
     }
   }
