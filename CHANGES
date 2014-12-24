@@ -1,11 +1,13 @@
 Revision history for perl module Mojolicious::Plugin::FeedReader
-0.06 2014-11-06
+
+0.06 2014-12-24
 
    - Removed use of Mojo::Collection::pluck, deprecated in Mojolicious 5.57
+   - Fix test depending on absolute url of test server. Thanks CPAN testers!
 
 0.05 2014-10-28
 
-   - Fixed possible bug revealed by Mojolicious 5.54 changes. Thanks to cpan testers!
+   - Fixed possible bug revealed by Mojolicious 5.54 changes. Thanks CPAN testers!
    - Added parse_opml helper.
 
 0.04 2014-05-09

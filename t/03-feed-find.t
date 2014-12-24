@@ -18,10 +18,12 @@ get '/monks' =>sub { shift->render(data => slurp(File::Spec->catfile($samples, '
 
 my $t = Test::Mojo->new(app);
 
+my $abs_feed_url = $t->app->ua->server->url->clone->path('atom.xml')->to_abs;
+
 # feed
 $t->get_ok('/atom.xml')->status_is(200);
 my @feeds = $t->app->find_feeds('/atom.xml');
-like( $feeds[0],  qr{http://localhost:\d+/atom.xml$} ); # abs url!
+is( $feeds[0],  $abs_feed_url ); # abs url!
 
 # can we consume a Mojo::URL ?
 my @feeds_a = $t->app->find_feeds($feeds[0]);
@@ -30,7 +32,7 @@ is_deeply($feeds_a[0], $feeds[0], 'argument is a Mojo::URL');
 # link
 $t->get_ok('/link1.html')->status_is(200);
 (@feeds) = $t->app->find_feeds('/link1.html');
-like( $feeds[0],  qr{http://localhost:\d+/atom.xml$} ); # abs url!
+is( $feeds[0],  $abs_feed_url ); # abs url!
 
 # html page with multiple feed links
 $t->get_ok('/link2_multi.html')->status_is(200);
@@ -66,7 +68,7 @@ $t->get_ok('/floo')->status_is(302);
 is( $feeds[0],  undef, 'default UA does not follow redirects'); # default UA doesn't follow redirects!
 $t->app->ua->max_redirects(3);
 (@feeds) = $t->app->find_feeds('/floo');
-like( $feeds[0],  qr{http://localhost:\d+/atom.xml$}, 'found with redirect' ); # abs url!
+is( $feeds[0],  $abs_feed_url, 'found with redirect' ); # abs url!
 
 # what do we do on a page with no feeds?
 $t->get_ok('/no_link.html')->status_is(200);
