@@ -1,7 +1,7 @@
 package Mojolicious::Plugin::FeedReader;
 use Mojo::Base 'Mojolicious::Plugin';
 
-our $VERSION = '0.06';
+our $VERSION = '0.07';
 use Mojo::Util qw(decode slurp trim);
 use Mojo::DOM;
 use Mojo::IOLoop;
@@ -169,7 +169,7 @@ sub parse_rss_item {
       # skip namespaced items - like itunes:summary - unless explicitly
       # searched:
       next
-        if ($p->type =~ /\:/
+        if ($p->tag =~ /\:/
         && $k ne 'content\:encoded'
         && $k ne 'xhtml\:body'
         && $k ne 'dc\:date'
@@ -337,7 +337,7 @@ sub parse_opml {
     my $node = $item->attr;
     if (!defined $node->{xmlUrl}) {
       my $cat = $node->{title} || $node->{text};
-      $categories{$cat} = $item->children->map('attr', 'xmlUrl');
+      $categories{$cat} = $item->children('[xmlUrl]')->map('attr', 'xmlUrl');
     }
     else {    # file by RSS URL:
       $subscriptions{$node->{xmlUrl}} = $node;

@@ -1,5 +1,9 @@
 Revision history for perl module Mojolicious::Plugin::FeedReader
 
+0.07 2015-03-01
+
+   - Made small adjustment to accommodate Mojolicious 6.0 changes.
+
 0.06 2014-12-24
 
    - Removed use of Mojo::Collection::pluck, deprecated in Mojolicious 5.57
