@@ -4,6 +4,7 @@ use Test::More;
 use Test::Mojo;
 use Mojo::Util qw(dumper);
 
+use FindBin;
 use Mojolicious::Lite;
 
 plugin 'FeedReader';

@@ -6,6 +6,7 @@ use Mojo::URL;
 use Mojo::Util qw(slurp);
 use HTTP::Date qw(time2isoz);
 
+use FindBin;
 use Mojolicious::Lite;
 plugin 'FeedReader';
 
