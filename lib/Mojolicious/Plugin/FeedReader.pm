@@ -6,7 +6,7 @@ use Mojo::Util qw(decode trim);
 use Mojo::File;
 use Mojo::DOM;
 use Mojo::IOLoop;
-use HTTP::Date;
+use Mojo::Date;
 use Carp qw(carp croak);
 use Scalar::Util qw(blessed);
 
@@ -128,7 +128,7 @@ sub parse_rss_channel {
          $info{$k} = $p->at('name')->text || $p->at('name')->content;
       }
       if ($is_time_field{$k}) {
-        $info{$k} = str2time($info{$k});
+        $info{$k} = Mojo::Date->new($info{$k})->epoch;
       }
     }
   }
@@ -185,7 +185,7 @@ sub parse_rss_item {
         $h{$k} = $p->at('name')->text;
       }
       if ($is_time_field{$k}) {
-        $h{$k} = str2time($h{$k});
+        $h{$k} = Mojo::Date->new($h{$k})->epoch;
       }
     }
   }
@@ -490,7 +490,7 @@ If given a callback function as an additional argument, execution will be non-bl
 
 A minimalist liberal RSS/Atom parser, using Mojo::DOM queries.
 
-Dates are parsed using L<HTTP::Date>.
+Dates are parsed using L<Mojo::Date>.
 
 If parsing fails (for example, the parser was given an HTML page), the helper will return undef.
 
