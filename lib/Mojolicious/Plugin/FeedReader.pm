@@ -196,6 +196,10 @@ sub parse_rss_item {
     }
   }
 
+  if ( my $enclosure = $item->at('enclosure') ) {
+	  $h{enclosure} = $enclosure->attr;
+  }
+
   # let's handle links seperately, because ATOM loves these buggers:
   $item->find('link')->each(
     sub {
