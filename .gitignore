@@ -12,3 +12,4 @@ MANIFEST*
 *META.*
 *.tar.gz
 cover_db*
+.DS_Store
