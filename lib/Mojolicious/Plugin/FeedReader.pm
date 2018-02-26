@@ -1,7 +1,7 @@
 package Mojolicious::Plugin::FeedReader;
 use Mojo::Base 'Mojolicious::Plugin';
 
-our $VERSION = '0.10';
+our $VERSION = '0.11';
 use Mojo::Util qw(decode trim);
 use Mojo::File;
 use Mojo::DOM;
@@ -481,7 +481,7 @@ If given a callback function as an additional argument, execution will be non-bl
 
   # non-blocking
   $self->parse_feed($url, sub {
-    my ($c, $feed) = @_;
+    my ($feed) = @_;
     $c->render(text => "Feed tagline: " . $feed->{tagline});
   });
 
@@ -561,12 +561,25 @@ Parse an OPML subscriptions file and return the list of feeds as an array of has
 
 Each hashref will contain an array ref in the key 'categories' listing the folders (parent nodes) in the OPML tree the subscription item appears in.
 
+=head1 STAND-ALONE USE
+
+L<Mojolicious::Plugin::FeedReader> can also be used directly, rather than as a plugin:
+
+  use Mojolicious::Plugin::FeedReader;
+  my $fr = Mojolicious::Plugin::FeedReader->new( ua => Mojo::UserAgent->new );
+  my ($feed) = $fr->find_feeds($url);
+  ...
+
+In the future, the feed-parsing code will probably move into its own module.
+
+
 =head1 CREDITS
 
-Some tests adapted from L<Feed::Find> and L<XML:Feed> Feed autodiscovery adapted from L<Feed::Find>.
+Dotan Dimet
 
-Test data (web pages, feeds and excerpts) included in this package is intended for testing purposes only, and is not meant in any way
-to infringe on the rights of the respective authors.
+Mario Domgoergen
+
+Some tests adapted from L<Feed::Find> and L<XML:Feed>, Feed autodiscovery adapted from L<Feed::Find>.
 
 =head1 COPYRIGHT AND LICENSE
 
@@ -574,6 +587,9 @@ Copyright (C) 2014, Dotan Dimet.
 
 This program is free software, you can redistribute it and/or modify it
 under the terms of the Artistic License version 2.0.
+
+Test data (web pages, feeds and excerpts) included in this package is intended for testing purposes only, and is not meant in any way
+to infringe on the rights of the respective authors.
 
 =head1 SEE ALSO
 
