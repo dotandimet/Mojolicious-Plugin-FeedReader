@@ -7,8 +7,11 @@ use Mojo::File;
 use Mojo::DOM;
 use Mojo::IOLoop;
 use HTTP::Date;
+use Mojo::UserAgent;
 use Carp qw(carp croak);
 use Scalar::Util qw(blessed);
+
+has ua => sub { Mojo::UserAgent->new };
 
 our @time_fields
   = (qw(pubDate published created issued updated modified dc\:date));
@@ -26,12 +29,15 @@ our $default_charset = 'UTF-8';
 
 sub register {
   my ($self, $app) = @_;
+
+  $self->ua( $app->ua );
+
   foreach my $method (
     qw( find_feeds parse_rss parse_opml ))
   {
-    $app->helper($method => \&{$method});
+    $app->helper($method => sub { shift; $self->$method(@_) });
   }
-  $app->helper(parse_feed => \&parse_rss);
+  $app->helper(parse_feed => sub { shift; $self->parse_rss(@_) });
 }
 
 sub make_dom {
@@ -60,13 +66,13 @@ sub make_dom {
 }
 
 sub parse_rss {
-  my ($c, $xml, $cb) = @_;
+  my ($self, $xml, $cb) = @_;
   my $charset = undef;
   if (blessed $xml && $xml->isa('Mojo::URL')) {
     # this is the only case where we might go non-blocking:
     if ($cb && ref $cb eq 'CODE') {
       return
-      $c->ua->get(
+      $self->ua->get(
         $xml,
         sub {
           my ($ua, $tx) = @_;
@@ -77,12 +83,12 @@ sub parse_rss {
             my $dom = make_dom(\$body, $charset);
             eval { $feed = parse_rss_dom($dom); };
           }
-          $c->$cb($feed);
+          $cb->($feed);
         }
       );
     }
     else {
-      my $tx = $c->ua->get($xml);
+      my $tx = $self->ua->get($xml);
       if ($tx->success) {
         my $body = $tx->res->body;
         $charset = $tx->res->content->charset;
@@ -325,7 +331,7 @@ sub _find_feed_links {
     unless (@feeds)
     {    # call me crazy, but maybe this is just a feed served as HTML?
       my $body = $res->body;
-      if ($self->parse_feed(\$body)) {
+      if ($self->parse_rss(\$body)) {
         push @feeds, Mojo::URL->new($url)->to_abs;
       }
     }
