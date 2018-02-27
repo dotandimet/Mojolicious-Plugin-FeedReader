@@ -196,12 +196,25 @@ sub parse_rss_item {
     }
   }
 
+  $item->find('enclosure')->each(
+    sub {
+        push @{ $h{enclosures} }, shift->attr;
+    }
+  );  
+
   # let's handle links seperately, because ATOM loves these buggers:
   $item->find('link')->each(
     sub {
       my $l = shift;
       if ($l->attr('href')) {
-        if (!$l->attr('rel') || $l->attr('rel') eq 'alternate') {
+	if ( $l->attr('rel' ) && $l->attr('rel') eq 'enclosure' ) {
+                push @{$h{enclosures}}, {
+                    url    => $l->attr('href'),
+                    type   => $l->attr('type'),
+                    length => $l->attr('length')
+                };
+	}
+        elsif (!$l->attr('rel') || $l->attr('rel') eq 'alternate') {
           $h{'link'} = $l->attr('href');
         }
       }
