@@ -196,9 +196,11 @@ sub parse_rss_item {
     }
   }
 
-  if ( my $enclosure = $item->at('enclosure') ) {
-	  $h{enclosure} = $enclosure->attr;
-  }
+  $item->find('enclosure')->each(
+    sub {
+        push @{ $h{enclosures} }, shift->attr;
+    }
+  );  
 
   # let's handle links seperately, because ATOM loves these buggers:
   $item->find('link')->each(
@@ -206,7 +208,7 @@ sub parse_rss_item {
       my $l = shift;
       if ($l->attr('href')) {
 	if ( $l->attr('rel' ) && $l->attr('rel') eq 'enclosure' ) {
-                $h{enclosure} = {
+                push @{$h{enclosures}}, {
                     url    => $l->attr('href'),
                     type   => $l->attr('type'),
                     length => $l->attr('length')
