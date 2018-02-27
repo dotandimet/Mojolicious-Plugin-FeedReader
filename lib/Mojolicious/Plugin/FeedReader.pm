@@ -1,7 +1,7 @@
 package Mojolicious::Plugin::FeedReader;
 use Mojo::Base 'Mojolicious::Plugin';
 
-our $VERSION = '0.11';
+our $VERSION = '0.12';
 use Mojo::Util qw(decode trim);
 use Mojo::File;
 use Mojo::DOM;
@@ -558,6 +558,8 @@ Each item in the items array is a hashref with the following keys:
 =item * tags (optional) - array ref of tags, categories or dc:subjects.
 
 =item * _raw - XML serialized text of the item's Mojo::DOM node. Note that this can be different from the original XML text in the feed.
+
+=item * enclosures (optional) - array ref of enclosures, each a hashref with the keys url, type and length.
 
 =back
 
