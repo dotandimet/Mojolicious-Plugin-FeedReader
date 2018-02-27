@@ -47,7 +47,7 @@ my %test_results = (
     ],
 );
 
-my $samples = path($FindBin::Bin)->child('all_samples');
+my $samples = path($FindBin::Bin)->child('samples');
 
 my $reader = Mojolicious::Plugin::FeedReader->new;
 
