@@ -12,6 +12,6 @@ get '/' => sub { shift->render(text => "Hello!") };
 
 my $t = Test::Mojo->new()->app(app);
 $t->app->ua->max_redirects(5);
-my ($feed) = $t->app->find_feeds("http://corky.net");
+my ($feed) = Mojo::URL->new('http://www.haaretz.co.il/cmlink/1.1617539'); # Haaretz Headlines
 my $res = $t->app->parse_feed($feed);
-is($res->{title}, 'קורקי.נט aggregator');
+is($res->{title}, 'כותרות ראשיות');
